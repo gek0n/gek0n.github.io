@@ -1,4 +1,5 @@
-{# Generates the main and basic menu from context data in the site's
+{# 
+   Generates the main and basic menu from context data in the site's
    configuration file.
 #}
 {% macro render_basic_menu() -%}
@@ -11,7 +12,8 @@
 {%- endmacro %}
 
 
-{# Generates the advanced menu from all files located in the content/advanced
+{# 
+   Generates the advanced menu from all files located in the content/advanced
    folder. Only advanced section files have 'index' metadata, so we can be
    certain that no other files will creep in.
 #}
@@ -25,7 +27,8 @@
 {%- endmacro %}
 
 
-{# Advanced topics macro. Renders navigation at the end of an advanced
+{# 
+   Advanced topics macro. Renders navigation at the end of an advanced
    article. It also depends on 'index' metadata.
 #}
 {% macro render_bottom_article_nav() %}
