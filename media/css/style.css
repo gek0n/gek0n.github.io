@@ -3,21 +3,6 @@
     padding: 0;
 }
 
-html, body {
-    color: #ddd;
-    background-color: black;
-}
-
-body {
-    margin: 0 auto;
-    width: 980px;
-    min-height: 700px;
-    background: url('../img/background.jpg') top left no-repeat;
-    position: relative;
-    font-size: 16px;
-    font-family: Tahoma, sans-serif;
-}
-
 strong {
     color: white;
 }

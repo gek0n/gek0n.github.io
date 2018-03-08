@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Blog| RUCTF 2014 QUALS - HARDWARE 100</title>
+    <meta charset="utf-8" />
+    <!-- link rel="stylesheet" href="/media/css/style.css" -->
+    <link rel="stylesheet" href="/media/css/w3.css">
+    <link rel="stylesheet" href="/media/css/blog/article.css">
+    <link href="http://fonts.googleapis.com/css?family=Anton"
+            rel="stylesheet" type="text/css">
+
+    <!-- Turn on code highlighting -->
+    <link rel="stylesheet" href="/media/css/highlight/hybrid.css">
+    <script src="/media/js/highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    <meta name="author" content="Загурский Михаил" />
+    <meta name="description" content="Writeup for the task Hardware 100 in RuCTF 2014 Quals" />
+    <meta name="generator" content="Hyde 0.8.9" />
+    <meta name="keywords" content="ctf,writeup,hardware,quals,ructf" />
+  </head>
+  <body onload="addW3ClassesToImages();">
+    <nav class="w3-bar w3-black w3-top">
+      <a href="#" class="w3-bar-item w3-button">Item1</a>
+      <a href="#" class="w3-bar-item w3-button w3-hide-small">Item2</a>
+      <a href="#" class="w3-bar-item w3-button w3-hide-small">Item3</a>
+      <a href="#" class="w3-bar-item w3-button w3-hide-small">Item4</a>
+      <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Navigation menu" onClick="toogleNavMenu()">NavMenu</a>
+      <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+        <a href="#" class="w3-bar-item w3-button">Item2</a>
+        <a href="#" class="w3-bar-item w3-button">Item3</a>
+        <a href="#" class="w3-bar-item w3-button">Item4</a>
+      </div>
+    </nav>
+    <header class="w3-container w3-center w3-padding-64 w3-xxlarge w3-mobile">
+      RUCTF 2014 QUALS - HARDWARE 100
+    </header>
+    
+    <article class="w3-content w3-justify w3-container w3-col m11 l10" id="article">
+      <p><em>Название задания:</em> IR dump.<br />
+<em>Описание задания:</em> Какой номер кредитной карты был введен?<br />
+<em>Ход решения:</em></p>
+<!--more-->
+
+<p class="w3-center"><img alt="Source file" src="/media/img/blog/ctf/dump.jpg" /></p>
+<p>Сначала открываем предложенный txt файл и смотрим его содержимое. Первые символы RMC364GY. Далее идет много нулей. Пролистав файл по-быстрому замечаем, что где-то в середине файла присутствуют очень длинные последовательности единичек. То есть HEX декодирование отпадает. Гуглим первые символы в файле, и вместе с названием задания понимаем что нам представлен лог работы устройства под названием: Infrared Remote RM C 364 GY - универсальный инфракрасный пульт управления устройствами (обычно телевизором). Понимаем что декодировать придется ИК сигнал, который шел от пульта к, для определенности, телевизору. Первым делом ищем в гугле <a href="http://www.mindrunway.ru/IRTips.html">варианты кодирования</a> ИК сигнала и находим <a href="http://www.moluch.ru/conf/tech/archive/2/197/">3 способа кодирования</a>:</p>
+<ol>
+<li>Двухфазная модуляция;</li>
+<li>Модуляция длительностью пауз;</li>
+<li>Модуляция длительностью импульса.</li>
+</ol>
+<p>Путем нехитрых логических умозаключений приходим к выводу, что кодируется сигнал длительностями импульса (к тому же это самый простой способ и в случае неудачи мы всегда можем попробовать оставшиеся два).</p>
+<p>Поясню принцип кодирования: работа начинается с подачи длинного сигнала 1 (здесь и в дальнейшем под "1" и "0" понимаем соответственно логические 1 или 0). После этого кодирование происходит таким образом. Если сигнал "0" и сигнал "1" одинаковой длины, то значит кодируется "0". Если сигнал "1" длиннее чем сигнал "0", то кодируется "1".</p>
+<p>Проверяем наше предположение - пишем простенький парсер для dump.txt</p>
+<pre><code>def parse_dump(dump):
+  result = {}
+  first = 0
+  last = 0
+  i = 0 #Номер сигнала по порядку
+  while first != -1: #Если не найдена последняя единичка выходим
+    i += 1
+    first = last
+    first = dump.find('1', first) #начало последовательности единиц
+    last = dump.find('0', first) #начало последовательности нулей
+    ones = last-first #Вычисляем длину последовательности единиц
+    first = dump.find('1', last) #следующую последовательность единиц
+    zerous = first - last #Вычисляем длину последовательности нулей
+    result[i] = (ones, zerous)
+  return result
+
+dump = open('dump.txt', 'r').read()
+result = parse_dump(dump)
+open('parsed_dump.txt', 'w').write(str(result))
+</code></pre>
+<p class="w3-center"><img alt="Parser output" onclick="document.getElementById('modal001').style.display='block'" src="/media/img/blog/ctf/parsed_dump.jpg" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal001" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/ctf/parsed_dump.jpg" style="width:95%;height:auto" /></div></p>
+<p>Смотрим на вывод парсера и понимаем, что наше предположение оказалось верно. Причем, видимо для облегчения задачи, количество единиц либо немного больше чем количество нулей, либо намного (в 1.5-2 раза) меньше. Соответственно в первом случае кодируется "0" (на рисунке выделено желтым), во втором "1" (выделено зеленым). Далее замечаем что через определенные промежутки идет очень большое количество нулей (выделено красным). Также легко заметить, что каждый 18 элемент имеет большое количество нулей, а между ними кодируются "0" и "1". Дописываем парсер для переведения сигналов в биты:</p>
+<pre><code>def convert_to_bit(in_dict):
+  result = {}
+  for i,j in in_dict.items():
+    if j[0] &amp;gt; j[1]:
+      result[i] = 0
+    elif j[1] &amp;gt; j[0]:
+      if j[1]&amp;gt;2000:
+        result[i] = "########"
+        continue
+      result[i] = 1
+  return result
+
+  out_dict = convert_to_bit(result)
+  open('sequense_bits.txt', 'w').write(str(out_dict))
+</code></pre>
+<p class="w3-center"><img alt="Parsed bits" onclick="document.getElementById('modal002').style.display='block'" src="/media/img/blog/ctf/sequence_bits.jpg" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal002" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/ctf/sequence_bits.jpg" style="width:95%;height:auto" /></div></p>
+<p>Снова лезем в интернет, на этот раз мы ищем любую документацию по кодированию сигналов для IR JVC (именно этой фирме принадлежит данная модель, о чем мы узнаем после первого этапа). Находим <a href="http://support.jvc.com/consumer/support/documents/RemoteCodes.pdf">pdf-файл</a> в пару страниц, который подтверждает наши предположения по кодированию и кроме того указывает что пакеты данных кодируются особым образом: сначала идет байт адреса, потом байт данных и в конце 1 бит контроля (именно с ним мы и видим "в паре" огромное количество нулей). Пришло время перевести полученные нолики и единицы в байты. Дописываем парсер, в качестве разделителей берем этот самый последний бит данных.</p>
+<p>Сразу хочу отметить, что несовершенство нашего метода декодирования может слегка искажать некоторые из пакетов, что в конечном итоге не должно помешать успешному декодированию, однако если читатель желает, он может усовершенствовать представленный код.</p>
+<pre><code>def convert_to_byte(in_dict):
+  bytes = "".join([str(i) for i in in_dict.values()])
+  bytes = bytes.split("########")
+  result = "\n".join([str(hex(int(i, 2))) for i in bytes])
+  return result
+
+encoded_str = convert_to_byte(out_dict)
+open('encoded_str.txt', 'w').write(encoded_str)
+</code></pre>
+<p class="w3-center"><img alt="IR codes" src="/media/img/blog/ctf/encoded_str.jpg" style="min-height:300px" />
+<img alt="IR type" onclick="document.getElementById('modal003').style.display='block'" src="/media/img/blog/ctf/IR2.jpg" style="max-height:300px;cursor:zoom-in;" />
+<img alt="IR type 2" src="/media/img/blog/ctf/IR.jpg" style="min-height:300px" /><div class="w3-modal w3-animate-zoom w3-center" id="modal003" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/ctf/IR2.jpg" style="width:auto" /></div></p>
+<p>Чтобы расшифровать коды долго и упорно ищем разные варианты кодирования сигнала пультами JVC и убеждаемся, что ни один из вариантов не подходит! Хочу отметить, что я пробовал очень много вариантов преобразования последовательностей нулей и единиц в исходном файле, но ни один из них не был похож на кодированный сигнал. В тоже самое время если открыть кодированный сигнал, который мы получили на предыдущем этапе, и выделить некоторые пакеты, то увидим, что они повторяются в коде достаточно часто. Наши коды вполне похожи на настоящие.</p>
+<p>В конце концов мне удалось найти подходящий <a href="http://irremote.psiloc.com/Show.aspx?d=TV&amp;amp;v=JVC&amp;amp;m=RM%20C364%20GY&amp;amp;i=64739">файл</a> именно для этой модели пульта, а их, как оказалось, две модификации! (см. картинки выше). Здесь в XML форме описаны коды для кнопочек. Снова переписываем наш парсер, так чтобы он подставил вместо известных кодов названия кнопок.</p>
+<pre><code>def convert_to_code(in_str):
+  codes = {
+  "TVChannelDown":"c2c0",
+  "TVChannelUp":"c2b0",
+  "TVRed":"c060",
+  "TVVolumeMute":"c038",
+  "TVVolumeDown":"c0f8",
+  "TVVolumeUp":"c078",
+  "TVChannel1":"c084",
+  "TVChannel2":"c044",
+  "TVChannel3":"c0c4",
+  "TVChannel4":"c024",
+  "TVChannel5":"c0a4",
+  "TVChannel6":"c064",
+  "TVChannel7":"c0e4",
+  "TVChannel8":"c014",
+  "TVChannel9":"c094",
+  "TVChannel0":"c004",
+  "TVPower":"c0e8",
+  "TVSource":"c208",
+  "TVPicture":"c288",
+  }
+  for key,val in codes.items():
+    in_str = in_str.replace(val, key)
+  return in_str
+
+result = convert_to_code(encoded_str)
+open("decoded_str.txt", 'w').write(result)
+</code></pre>
+<p class="w3-center"><img alt="Decoded message" src="/media/img/blog/ctf/decoded_str.jpg" /></p>
+<p>Запускаем и видим, что не все коды преобразовались. В чем же дело?</p>
+<p>Дело в том, что существует погрешность передачи, соответственно каждая нажатая кнопка передается целой пачкой однотипных пакетов, некоторые из которых повреждаются. Соответственно нам достаточно выбрать только те кнопки, которые мы видим, а вместо пропусков подразумеваем те же коды, только искаженные. Переписываем полученный код кредитки 48524840949592 и снова проблема! Код кредитной карты, во всяком случае современной, должен состоять из 16 цифр, а у нас всего 14. На всякий случай пробуем отослать флаг, и естественно код не подходит. Дальше подключаем воображение, и думаем, что же будет, если подряд будут идти одинаковые цифры? Правильно! Их код одинаковый и будет большей длины, чем код соседних символов. Проверяем наше предположение и видим, что первая четверка и последняя девятка немного длиннее, чем соседние символы. Подставляем, проверяем - готово!</p>
+<p class="w3-center"><strong>flag:4485248409495992</strong><br />
+//solved by gek0n</p>
+<hr />
+<h4>Использованные источники:</h4>
+<ol>
+<li><a href="http://www.mindrunway.ru/IRTips.html">http://www.mindrunway.ru/IRTips.html</a></li>
+<li><a href="http://www.moluch.ru/conf/tech/archive/2/197/">http://www.moluch.ru/conf/tech/archive/2/197/</a></li>
+<li><a href="http://support.jvc.com/consumer/support/documents/RemoteCodes.pdf">http://support.jvc.com/consumer/support/documents/RemoteCodes.pdf</a></li>
+<li><a href="http://irremote.psiloc.com/Show.aspx?d=TV&amp;amp;v=JVC&amp;amp;m=RM%20C364%20GY&amp;amp;i=64739">http://irremote.psiloc.com/Show.aspx?d=TV&amp;v=JVC&amp;m=RM%20C364%20GY&amp;i=64739</a></li>
+</ol>    </article>
+    <footer class="w3-row-padding w3-center w3-padding-16">
+      <div class="w3-row">
+        <div class="w3-third">
+          <h3>About</h3>
+        </div>
+        <div class="w3-third">
+          <h3>Recent posts</h3>
+          <ul class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
+                    <li>
+            <div class="w3-cell-row w3-container">
+              <div class="w3-cell">
+                              <img class="w3-image w3-padding-small" src="/media/img/icons/ctf.png"/>
+                            </div>
+              <div style="w3-cell w3-cell-middle w3-container">
+                <p>RUCTF 2014 QUALS - HARDWARE 100</p>
+              </div>
+            </div>
+          </li>
+                    <li>
+            <div class="w3-cell-row w3-container">
+              <div class="w3-cell">
+                            </div>
+              <div style="w3-cell w3-cell-middle w3-container">
+                <p>Создание класса Logger</p>
+              </div>
+            </div>
+          </li>
+                    </ul>
+        </div>
+        <div class="w3-third">
+          <h3>Tags</h3>
+                                                                                                                            <span class="w3-tag w3-margin-bottom w3-dark-gray">writeup</span>
+                                                                                                                            <span class="w3-tag w3-margin-bottom w3-dark-gray">ctf</span>
+                                                                                              <span class="w3-tag w3-margin-bottom w3-gray">wip</span>
+                  </div>
+      </div>
+      <div class="w3-wide w3-opacity w3-tiny w3-text-dark-grey">
+        Generated with <a href="https://github.com/hyde/hyde">the Hyde</a>
+        <br>
+        Powered by <a href="https://www.w3schools.com/w3css/default.asp" target="_blank">w3.css</a>
+      </div>
+    </footer>
+    <script>
+    function toogleNavMenu() {
+      var smallMenu = document.getElementById("smallMenu");
+      if (smallMenu.className.indexOf("w3-show") == -1) {
+        smallMenu.className += " w3-show";
+      } else {
+        smallMenu.className = smallMenu.className.replace(" w3-show", "");
+      }
+    }
+
+    function addW3ClassesToImages() {
+      var imgs = document.getElementById("article").getElementsByTagName("img");
+      for (i = 0; i < imgs.length; i++) {
+        console.log(imgs[i].src);
+        imgs[i].className += " w3-card";
+        imgs[i].className += " w3-image";
+      }
+    }
+    </script>
+  </body>
+</html>
