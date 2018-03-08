@@ -17,9 +17,12 @@ plugins:
     - hyde.ext.plugins.meta.TaggerPlugin
 context:
     data:
+        soft:
+          - name: "Hyde"
+            version: "0.8.9"
         author:
-            name: Merlin Rebrović
-            url: "http://merlin.rebrovic.net"
+            name: "Загурский Михаил"
+            url: ""
         layout:
             name: Hyde Starter Kit
             url: "https://github.com/merlinrebrovic/hyde-starter-kit"
@@ -35,6 +38,11 @@ context:
           - title: About
             url: about.html
 
+markdown:
+    extensions:
+        - attr_list  # Use attribute for html elements
+        - img_modal  # Make large image clickable for open in modal
+
 ### Advanced part ###
 
 # This defines meta data on the whole site.
@@ -46,6 +54,9 @@ meta:
     nodemeta: meta.yaml
     ga_tracking_code: XX-XXXXXXXX-X
 
+simple_copy:
+    - media/css/*
+    - media/js/*
 sorter:
     name: # the name of the sorter (no pun intended)
         attr: name # by which attributes will resources be sorted
@@ -62,6 +73,12 @@ sorter:
         attr: meta.index
         filters:
             source_file.kind: html
+    date:
+        attr: meta.date
+        filters:
+            source_file.kind: html
+        #reverse: True
+
     learning_order:
         attr: meta.learning_order
         filters:
