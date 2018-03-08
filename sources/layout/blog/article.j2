@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Blog{% if resource.meta.title-%} | {{resource.meta.title}} {%-endif %}</title>
+    <meta charset="utf-8" />
+    <!-- link rel="stylesheet" href="{{ media_url('css/style.css') }}" -->
+    <link rel="stylesheet" href="{{ media_url('css/w3.css') }}">
+    <link rel="stylesheet" href="{{ media_url('css/blog/article.css') }}">
+    <link href="http://fonts.googleapis.com/css?family=Anton"
+            rel="stylesheet" type="text/css">
+
+    <!-- Turn on code highlighting -->
+    <link rel="stylesheet" href="{{ media_url('css/highlight/hybrid.css') }}">
+    <script src="/media/js/highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    <meta name="author" content="{{author.name}}" />
+    <meta name="description" content="{{resource.meta.description}}" />
+{% for item in soft %}
+    <meta name="generator" content="{{item["name"]}} {{item["version"]}}" />
+{% endfor %}
+    <meta name="keywords" content="{{resource.meta.keywords}}" />
+  </head>
+  <body onload="addW3ClassesToImages();">
+    <nav class="w3-bar w3-black w3-top">
+      <a href="#" class="w3-bar-item w3-button">Item1</a>
+      <a href="#" class="w3-bar-item w3-button w3-hide-small">Item2</a>
+      <a href="#" class="w3-bar-item w3-button w3-hide-small">Item3</a>
+      <a href="#" class="w3-bar-item w3-button w3-hide-small">Item4</a>
+      <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Navigation menu" onClick="toogleNavMenu()">NavMenu</a>
+      <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+        <a href="#" class="w3-bar-item w3-button">Item2</a>
+        <a href="#" class="w3-bar-item w3-button">Item3</a>
+        <a href="#" class="w3-bar-item w3-button">Item4</a>
+      </div>
+    </nav>
+    <header class="w3-container w3-center w3-padding-64 w3-xxlarge w3-mobile">
+      {{resource.meta.title}}
+    </header>
+    
+    <article class="w3-content w3-justify w3-container w3-col m11 l10" id="article">
+      {% filter markdown -%}
+      {% block article %}{% endblock %}
+      {%- endfilter %}
+    </article>
+    <footer class="w3-row-padding w3-center w3-padding-16">
+      <div class="w3-row">
+        <div class="w3-third">
+          <h3>About</h3>
+        </div>
+        <div class="w3-third">
+          <h3>Recent posts</h3>
+          <ul class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
+          {% for res in site.content.walk_resources_sorted_by_date() %}
+          <li>
+            <div class="w3-cell-row w3-container">
+              <div class="w3-cell">
+              {% for curtag in res.meta.tags if curtag == "ctf" %}
+                <img class="w3-image w3-padding-small" src="{{ media_url('img/icons/ctf.png') }}"/>
+              {% endfor %}
+              </div>
+              <div style="w3-cell w3-cell-middle w3-container">
+                <p>{{res.meta.title}}</p>
+              </div>
+            </div>
+          </li>
+          {% endfor %}
+          </ul>
+        </div>
+        <div class="w3-third">
+          <h3>Tags</h3>
+          {% for tagname, tag in site.tagger.tags %}
+          {% set class = namespace(name="w3-gray") %}
+            {% for curtag in resource.meta.tags %}
+              {% if tagname == curtag %}
+                {% set class.name = "w3-dark-gray" %}
+              {% endif %}
+            {% endfor %}
+          <span class="w3-tag w3-margin-bottom {{ class.name }}">{{ tagname|lower }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="w3-wide w3-opacity w3-tiny w3-text-dark-grey">
+        Generated with <a href="https://github.com/hyde/hyde">the Hyde</a>
+        <br>
+        Powered by <a href="https://www.w3schools.com/w3css/default.asp" target="_blank">w3.css</a>
+      </div>
+    </footer>
+    <script>
+    function toogleNavMenu() {
+      var smallMenu = document.getElementById("smallMenu");
+      if (smallMenu.className.indexOf("w3-show") == -1) {
+        smallMenu.className += " w3-show";
+      } else {
+        smallMenu.className = smallMenu.className.replace(" w3-show", "");
+      }
+    }
+
+    function addW3ClassesToImages() {
+      var imgs = document.getElementById("article").getElementsByTagName("img");
+      for (i = 0; i < imgs.length; i++) {
+        console.log(imgs[i].src);
+        imgs[i].className += " w3-card";
+        imgs[i].className += " w3-image";
+      }
+    }
+    </script>
+  </body>
+</html>
