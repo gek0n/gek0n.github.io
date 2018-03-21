@@ -28,45 +28,49 @@ date: 13.03.2014
 
 Проверяем наше предположение - пишем простенький парсер для dump.txt
 
-    def parse_dump(dump):
-      result = {}
-      first = 0
-      last = 0
-      i = 0 #Номер сигнала по порядку
-      while first != -1: #Если не найдена последняя единичка выходим
-        i += 1
-        first = last
-        first = dump.find('1', first) #начало последовательности единиц
-        last = dump.find('0', first) #начало последовательности нулей
-        ones = last-first #Вычисляем длину последовательности единиц
-        first = dump.find('1', last) #следующую последовательность единиц
-        zerous = first - last #Вычисляем длину последовательности нулей
-        result[i] = (ones, zerous)
-      return result
-  
-    dump = open('dump.txt', 'r').read()
-    result = parse_dump(dump)
-    open('parsed_dump.txt', 'w').write(str(result))
+```py
+def parse_dump(dump):
+  result = {}
+  first = 0
+  last = 0
+  i = 0 #Номер сигнала по порядку
+  while first != -1: #Если не найдена последняя единичка выходим
+    i += 1
+    first = last
+    first = dump.find('1', first) #начало последовательности единиц
+    last = dump.find('0', first) #начало последовательности нулей
+    ones = last-first #Вычисляем длину последовательности единиц
+    first = dump.find('1', last) #следующую последовательность единиц
+    zerous = first - last #Вычисляем длину последовательности нулей
+    result[i] = (ones, zerous)
+  return result
+
+dump = open('dump.txt', 'r').read()
+result = parse_dump(dump)
+open('parsed_dump.txt', 'w').write(str(result))
+```
 
 ![Parser output][parser_out]
 {: .w3-center}
 
 Смотрим на вывод парсера и понимаем, что наше предположение оказалось верно. Причем, видимо для облегчения задачи, количество единиц либо немного больше чем количество нулей, либо намного (в 1.5-2 раза) меньше. Соответственно в первом случае кодируется "0" (на рисунке выделено желтым), во втором "1" (выделено зеленым). Далее замечаем что через определенные промежутки идет очень большое количество нулей (выделено красным). Также легко заметить, что каждый 18 элемент имеет большое количество нулей, а между ними кодируются "0" и "1". Дописываем парсер для переведения сигналов в биты:
 
-    def convert_to_bit(in_dict):
-      result = {}
-      for i,j in in_dict.items():
-        if j[0] &gt; j[1]:
-          result[i] = 0
-        elif j[1] &gt; j[0]:
-          if j[1]&gt;2000:
-            result[i] = "########"
-            continue
-          result[i] = 1
-      return result
+```py
+def convert_to_bit(in_dict):
+  result = {}
+  for i,j in in_dict.items():
+    if j[0] &gt; j[1]:
+      result[i] = 0
+    elif j[1] &gt; j[0]:
+      if j[1]&gt;2000:
+        result[i] = "########"
+        continue
+      result[i] = 1
+  return result
 
-      out_dict = convert_to_bit(result)
-      open('sequense_bits.txt', 'w').write(str(out_dict))
+  out_dict = convert_to_bit(result)
+  open('sequense_bits.txt', 'w').write(str(out_dict))
+```
 
 ![Parsed bits][parser_out_bits]
 {: .w3-center}
@@ -75,14 +79,16 @@ date: 13.03.2014
 
 Сразу хочу отметить, что несовершенство нашего метода декодирования может слегка искажать некоторые из пакетов, что в конечном итоге не должно помешать успешному декодированию, однако если читатель желает, он может усовершенствовать представленный код.
 
-    def convert_to_byte(in_dict):
-      bytes = "".join([str(i) for i in in_dict.values()])
-      bytes = bytes.split("########")
-      result = "\n".join([str(hex(int(i, 2))) for i in bytes])
-      return result
-  
-    encoded_str = convert_to_byte(out_dict)
-    open('encoded_str.txt', 'w').write(encoded_str)
+```py
+def convert_to_byte(in_dict):
+  bytes = "".join([str(i) for i in in_dict.values()])
+  bytes = bytes.split("########")
+  result = "\n".join([str(hex(int(i, 2))) for i in bytes])
+  return result
+
+encoded_str = convert_to_byte(out_dict)
+open('encoded_str.txt', 'w').write(encoded_str)
+```
 
 ![IR codes][ir_codes]{: style="min-height:300px"}
 ![IR type][ir_control]
@@ -93,35 +99,36 @@ date: 13.03.2014
 
 В конце концов мне удалось найти подходящий [файл][4] именно для этой модели пульта, а их, как оказалось, две модификации! (см. картинки выше). Здесь в XML форме описаны коды для кнопочек. Снова переписываем наш парсер, так чтобы он подставил вместо известных кодов названия кнопок.
 
-    def convert_to_code(in_str):
-      codes = {
-      "TVChannelDown":"c2c0",
-      "TVChannelUp":"c2b0",
-      "TVRed":"c060",
-      "TVVolumeMute":"c038",
-      "TVVolumeDown":"c0f8",
-      "TVVolumeUp":"c078",
-      "TVChannel1":"c084",
-      "TVChannel2":"c044",
-      "TVChannel3":"c0c4",
-      "TVChannel4":"c024",
-      "TVChannel5":"c0a4",
-      "TVChannel6":"c064",
-      "TVChannel7":"c0e4",
-      "TVChannel8":"c014",
-      "TVChannel9":"c094",
-      "TVChannel0":"c004",
-      "TVPower":"c0e8",
-      "TVSource":"c208",
-      "TVPicture":"c288",
-      }
-      for key,val in codes.items():
-        in_str = in_str.replace(val, key)
-      return in_str
-    
-    result = convert_to_code(encoded_str)
-    open("decoded_str.txt", 'w').write(result)
+```
+def convert_to_code(in_str):
+  codes = {
+  "TVChannelDown":"c2c0",
+  "TVChannelUp":"c2b0",
+  "TVRed":"c060",
+  "TVVolumeMute":"c038",
+  "TVVolumeDown":"c0f8",
+  "TVVolumeUp":"c078",
+  "TVChannel1":"c084",
+  "TVChannel2":"c044",
+  "TVChannel3":"c0c4",
+  "TVChannel4":"c024",
+  "TVChannel5":"c0a4",
+  "TVChannel6":"c064",
+  "TVChannel7":"c0e4",
+  "TVChannel8":"c014",
+  "TVChannel9":"c094",
+  "TVChannel0":"c004",
+  "TVPower":"c0e8",
+  "TVSource":"c208",
+  "TVPicture":"c288",
+  }
+  for key,val in codes.items():
+    in_str = in_str.replace(val, key)
+  return in_str
 
+result = convert_to_code(encoded_str)
+open("decoded_str.txt", 'w').write(result)
+```
 
 ![Decoded message][ir_decoded]
 {: .w3-center}

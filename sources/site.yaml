@@ -42,6 +42,7 @@ markdown:
     extensions:
         - attr_list  # Use attribute for html elements
         - img_modal  # Make large image clickable for open in modal
+        - fenced_code # Make <pre><code> tags with language and highlight support
 
 ### Advanced part ###
 
