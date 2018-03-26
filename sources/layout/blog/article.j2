@@ -51,7 +51,7 @@
         <div class="w3-third">
           <h3>Recent posts</h3>
           <ul class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
-          {% for res in site.content.walk_resources_sorted_by_date() %}
+          {% for res in site.content.walk_resources_sorted_by_date() if res.url != resource.url%}
           <li>
             <div class="w3-cell-row w3-container">
               <div class="w3-cell">
@@ -60,7 +60,7 @@
               {% endfor %}
               </div>
               <div style="w3-cell w3-cell-middle w3-container">
-                <p>{{res.meta.title}}</p>
+                <a href="{{ content_url(res.url) }}">{{res.meta.title}}</a>
               </div>
             </div>
           </li>
