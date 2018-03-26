@@ -50,7 +50,7 @@
         </div>
         <div class="w3-third">
           <h3>Recent posts</h3>
-          <ul class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
+          <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
           {% for res in site.content.walk_resources_sorted_by_date() if res.url != resource.url%}
           <li>
             <div class="w3-cell-row w3-container">
