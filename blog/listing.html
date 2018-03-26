@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Blog| Записная книжка</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/media/css/style.css">
+    <link rel="stylesheet" href="/media/css/w3.css">
+    <link rel="stylesheet" href="/media/css/blog/article.css">
+    <link rel="stylesheet" href="/media/css/font-awesome.min.css">
+    
+    <link href="http://fonts.googleapis.com/css?family=Anton"
+            rel="stylesheet" type="text/css">
+
+    <!-- Turn on code highlighting -->
+    <link rel="stylesheet" href="/media/css/highlight/hybrid.css">
+    <script src="/media/js/highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    <meta name="author" content="Загурский Михаил" />
+    <meta name="description" content="Содержит список статей, содержащихся в блоге" />
+        <meta name="generator" content="Hyde 0.8.9" />
+        <meta name="keywords" content="" />
+  </head>
+  <body>
+    <nav id="main" class="w3-bar w3-black w3-top">
+    <a href="/index.html" class="w3-bar-item w3-button ">Главная</a>
+    <a href="/blog/listing.html" class="w3-bar-item w3-button  w3-hide-small ">Блог</a>
+    <a href="/about.html" class="w3-bar-item w3-button  w3-hide-small ">Резюме</a>
+    <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
+  <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+        <a href="/blog/listing.html" class="w3-bar-item w3-button">Блог</a>
+        <a href="/about.html" class="w3-bar-item w3-button">Резюме</a>
+      </div>
+</nav>
+    <header class="w3-container w3-center w3-padding-64 w3-xxlarge w3-mobile">
+      Записная книжка
+    </header>
+    <div class="" style="max-width:800px;margin:0 auto;">
+      <ul id="articles" class="w3-ul w3-hoverable w3-large">
+                <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/named_pipe.html';">
+            <i id="calendar" class="fa fa-calendar-check-o w3-text-dark-red"> [23.03.2018]</i>
+            <span>
+              Создание именованного пайпа в привилегированном процессе
+            </span>
+        </li>
+                <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/file_ctx.html';">
+            <i id="calendar" class="fa fa-calendar-check-o w3-text-dark-red"> [21.03.2018]</i>
+            <span>
+              Передача файлового контекста
+            </span>
+        </li>
+                <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/logger.html';">
+            <i id="calendar" class="fa fa-calendar-check-o w3-text-dark-red"> [13.07.2017]</i>
+            <span>
+              Создание класса Logger
+            </span>
+        </li>
+                <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/ctf/ructf_2014_quals_hardware_100.html';">
+            <i id="calendar" class="fa fa-calendar-check-o w3-text-dark-red"> [13.03.2014]</i>
+            <span>
+              RUCTF 2014 QUALS - HARDWARE 100
+            </span>
+        </li>
+              </ul>
+    </div>
+  </body>
+</html>

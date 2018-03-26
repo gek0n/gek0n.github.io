@@ -3,7 +3,7 @@
   <head>
     <title>Blog| RUCTF 2014 QUALS - HARDWARE 100</title>
     <meta charset="utf-8" />
-    <!-- link rel="stylesheet" href="/media/css/style.css" -->
+    <link rel="stylesheet" href="/media/css/style.css">
     <link rel="stylesheet" href="/media/css/w3.css">
     <link rel="stylesheet" href="/media/css/blog/article.css">
     <link href="http://fonts.googleapis.com/css?family=Anton"
@@ -20,18 +20,16 @@
     <meta name="keywords" content="ctf,writeup,hardware,quals,ructf" />
   </head>
   <body onload="addW3ClassesToImages();">
-    <nav class="w3-bar w3-black w3-top">
-      <a href="#" class="w3-bar-item w3-button">Item1</a>
-      <a href="#" class="w3-bar-item w3-button w3-hide-small">Item2</a>
-      <a href="#" class="w3-bar-item w3-button w3-hide-small">Item3</a>
-      <a href="#" class="w3-bar-item w3-button w3-hide-small">Item4</a>
-      <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Navigation menu" onClick="toogleNavMenu()">NavMenu</a>
-      <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
-        <a href="#" class="w3-bar-item w3-button">Item2</a>
-        <a href="#" class="w3-bar-item w3-button">Item3</a>
-        <a href="#" class="w3-bar-item w3-button">Item4</a>
+    <nav id="main" class="w3-bar w3-black w3-top">
+    <a href="/index.html" class="w3-bar-item w3-button ">Главная</a>
+    <a href="/blog/listing.html" class="w3-bar-item w3-button  w3-hide-small ">Блог</a>
+    <a href="/about.html" class="w3-bar-item w3-button  w3-hide-small ">Резюме</a>
+    <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
+  <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+        <a href="/blog/listing.html" class="w3-bar-item w3-button">Блог</a>
+        <a href="/about.html" class="w3-bar-item w3-button">Резюме</a>
       </div>
-    </nav>
+</nav>
     <header class="w3-container w3-center w3-padding-64 w3-xxlarge w3-mobile">
       RUCTF 2014 QUALS - HARDWARE 100
     </header>
@@ -52,7 +50,7 @@
 <p>Путем нехитрых логических умозаключений приходим к выводу, что кодируется сигнал длительностями импульса (к тому же это самый простой способ и в случае неудачи мы всегда можем попробовать оставшиеся два).</p>
 <p>Поясню принцип кодирования: работа начинается с подачи длинного сигнала 1 (здесь и в дальнейшем под "1" и "0" понимаем соответственно логические 1 или 0). После этого кодирование происходит таким образом. Если сигнал "0" и сигнал "1" одинаковой длины, то значит кодируется "0". Если сигнал "1" длиннее чем сигнал "0", то кодируется "1".</p>
 <p>Проверяем наше предположение - пишем простенький парсер для dump.txt</p>
-<pre><code>def parse_dump(dump):
+<pre><code class="py">def parse_dump(dump):
   result = {}
   first = 0
   last = 0
@@ -72,16 +70,17 @@ dump = open('dump.txt', 'r').read()
 result = parse_dump(dump)
 open('parsed_dump.txt', 'w').write(str(result))
 </code></pre>
+
 <p class="w3-center"><img alt="Parser output" onclick="document.getElementById('modal001').style.display='block'" src="/media/img/blog/ctf/parsed_dump.jpg" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal001" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/ctf/parsed_dump.jpg" style="width:95%;height:auto" /></div></p>
 <p>Смотрим на вывод парсера и понимаем, что наше предположение оказалось верно. Причем, видимо для облегчения задачи, количество единиц либо немного больше чем количество нулей, либо намного (в 1.5-2 раза) меньше. Соответственно в первом случае кодируется "0" (на рисунке выделено желтым), во втором "1" (выделено зеленым). Далее замечаем что через определенные промежутки идет очень большое количество нулей (выделено красным). Также легко заметить, что каждый 18 элемент имеет большое количество нулей, а между ними кодируются "0" и "1". Дописываем парсер для переведения сигналов в биты:</p>
-<pre><code>def convert_to_bit(in_dict):
+<pre><code class="py">def convert_to_bit(in_dict):
   result = {}
   for i,j in in_dict.items():
     if j[0] &amp;gt; j[1]:
       result[i] = 0
     elif j[1] &amp;gt; j[0]:
       if j[1]&amp;gt;2000:
-        result[i] = "########"
+        result[i] = &quot;########&quot;
         continue
       result[i] = 1
   return result
@@ -89,18 +88,20 @@ open('parsed_dump.txt', 'w').write(str(result))
   out_dict = convert_to_bit(result)
   open('sequense_bits.txt', 'w').write(str(out_dict))
 </code></pre>
+
 <p class="w3-center"><img alt="Parsed bits" onclick="document.getElementById('modal002').style.display='block'" src="/media/img/blog/ctf/sequence_bits.jpg" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal002" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/ctf/sequence_bits.jpg" style="width:95%;height:auto" /></div></p>
 <p>Снова лезем в интернет, на этот раз мы ищем любую документацию по кодированию сигналов для IR JVC (именно этой фирме принадлежит данная модель, о чем мы узнаем после первого этапа). Находим <a href="http://support.jvc.com/consumer/support/documents/RemoteCodes.pdf">pdf-файл</a> в пару страниц, который подтверждает наши предположения по кодированию и кроме того указывает что пакеты данных кодируются особым образом: сначала идет байт адреса, потом байт данных и в конце 1 бит контроля (именно с ним мы и видим "в паре" огромное количество нулей). Пришло время перевести полученные нолики и единицы в байты. Дописываем парсер, в качестве разделителей берем этот самый последний бит данных.</p>
 <p>Сразу хочу отметить, что несовершенство нашего метода декодирования может слегка искажать некоторые из пакетов, что в конечном итоге не должно помешать успешному декодированию, однако если читатель желает, он может усовершенствовать представленный код.</p>
-<pre><code>def convert_to_byte(in_dict):
-  bytes = "".join([str(i) for i in in_dict.values()])
-  bytes = bytes.split("########")
-  result = "\n".join([str(hex(int(i, 2))) for i in bytes])
+<pre><code class="py">def convert_to_byte(in_dict):
+  bytes = &quot;&quot;.join([str(i) for i in in_dict.values()])
+  bytes = bytes.split(&quot;########&quot;)
+  result = &quot;\n&quot;.join([str(hex(int(i, 2))) for i in bytes])
   return result
 
 encoded_str = convert_to_byte(out_dict)
 open('encoded_str.txt', 'w').write(encoded_str)
 </code></pre>
+
 <p class="w3-center"><img alt="IR codes" src="/media/img/blog/ctf/encoded_str.jpg" style="min-height:300px" />
 <img alt="IR type" onclick="document.getElementById('modal003').style.display='block'" src="/media/img/blog/ctf/IR2.jpg" style="max-height:300px;cursor:zoom-in;" />
 <img alt="IR type 2" src="/media/img/blog/ctf/IR.jpg" style="min-height:300px" /><div class="w3-modal w3-animate-zoom w3-center" id="modal003" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/ctf/IR2.jpg" style="width:auto" /></div></p>
@@ -108,33 +109,34 @@ open('encoded_str.txt', 'w').write(encoded_str)
 <p>В конце концов мне удалось найти подходящий <a href="http://irremote.psiloc.com/Show.aspx?d=TV&amp;amp;v=JVC&amp;amp;m=RM%20C364%20GY&amp;amp;i=64739">файл</a> именно для этой модели пульта, а их, как оказалось, две модификации! (см. картинки выше). Здесь в XML форме описаны коды для кнопочек. Снова переписываем наш парсер, так чтобы он подставил вместо известных кодов названия кнопок.</p>
 <pre><code>def convert_to_code(in_str):
   codes = {
-  "TVChannelDown":"c2c0",
-  "TVChannelUp":"c2b0",
-  "TVRed":"c060",
-  "TVVolumeMute":"c038",
-  "TVVolumeDown":"c0f8",
-  "TVVolumeUp":"c078",
-  "TVChannel1":"c084",
-  "TVChannel2":"c044",
-  "TVChannel3":"c0c4",
-  "TVChannel4":"c024",
-  "TVChannel5":"c0a4",
-  "TVChannel6":"c064",
-  "TVChannel7":"c0e4",
-  "TVChannel8":"c014",
-  "TVChannel9":"c094",
-  "TVChannel0":"c004",
-  "TVPower":"c0e8",
-  "TVSource":"c208",
-  "TVPicture":"c288",
+  &quot;TVChannelDown&quot;:&quot;c2c0&quot;,
+  &quot;TVChannelUp&quot;:&quot;c2b0&quot;,
+  &quot;TVRed&quot;:&quot;c060&quot;,
+  &quot;TVVolumeMute&quot;:&quot;c038&quot;,
+  &quot;TVVolumeDown&quot;:&quot;c0f8&quot;,
+  &quot;TVVolumeUp&quot;:&quot;c078&quot;,
+  &quot;TVChannel1&quot;:&quot;c084&quot;,
+  &quot;TVChannel2&quot;:&quot;c044&quot;,
+  &quot;TVChannel3&quot;:&quot;c0c4&quot;,
+  &quot;TVChannel4&quot;:&quot;c024&quot;,
+  &quot;TVChannel5&quot;:&quot;c0a4&quot;,
+  &quot;TVChannel6&quot;:&quot;c064&quot;,
+  &quot;TVChannel7&quot;:&quot;c0e4&quot;,
+  &quot;TVChannel8&quot;:&quot;c014&quot;,
+  &quot;TVChannel9&quot;:&quot;c094&quot;,
+  &quot;TVChannel0&quot;:&quot;c004&quot;,
+  &quot;TVPower&quot;:&quot;c0e8&quot;,
+  &quot;TVSource&quot;:&quot;c208&quot;,
+  &quot;TVPicture&quot;:&quot;c288&quot;,
   }
   for key,val in codes.items():
     in_str = in_str.replace(val, key)
   return in_str
 
 result = convert_to_code(encoded_str)
-open("decoded_str.txt", 'w').write(result)
+open(&quot;decoded_str.txt&quot;, 'w').write(result)
 </code></pre>
+
 <p class="w3-center"><img alt="Decoded message" src="/media/img/blog/ctf/decoded_str.jpg" /></p>
 <p>Запускаем и видим, что не все коды преобразовались. В чем же дело?</p>
 <p>Дело в том, что существует погрешность передачи, соответственно каждая нажатая кнопка передается целой пачкой однотипных пакетов, некоторые из которых повреждаются. Соответственно нам достаточно выбрать только те кнопки, которые мы видим, а вместо пропусков подразумеваем те же коды, только искаженные. Переписываем полученный код кредитки 48524840949592 и снова проблема! Код кредитной карты, во всяком случае современной, должен состоять из 16 цифр, а у нас всего 14. На всякий случай пробуем отослать флаг, и естественно код не подходит. Дальше подключаем воображение, и думаем, что же будет, если подряд будут идти одинаковые цифры? Правильно! Их код одинаковый и будет большей длины, чем код соседних символов. Проверяем наше предположение и видим, что первая четверка и последняя девятка немного длиннее, чем соседние символы. Подставляем, проверяем - готово!</p>
@@ -155,14 +157,13 @@ open("decoded_str.txt", 'w').write(result)
         </div>
         <div class="w3-third">
           <h3>Recent posts</h3>
-          <ul class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
+          <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
                     <li>
             <div class="w3-cell-row w3-container">
               <div class="w3-cell">
-                              <img class="w3-image w3-padding-small" src="/media/img/icons/ctf.png"/>
                             </div>
               <div style="w3-cell w3-cell-middle w3-container">
-                <p>RUCTF 2014 QUALS - HARDWARE 100</p>
+                <a href="/blog/named_pipe.html">Создание именованного пайпа в привилегированном процессе</a>
               </div>
             </div>
           </li>
@@ -171,7 +172,16 @@ open("decoded_str.txt", 'w').write(result)
               <div class="w3-cell">
                             </div>
               <div style="w3-cell w3-cell-middle w3-container">
-                <p>Создание класса Logger</p>
+                <a href="/blog/file_ctx.html">Передача файлового контекста</a>
+              </div>
+            </div>
+          </li>
+                    <li>
+            <div class="w3-cell-row w3-container">
+              <div class="w3-cell">
+                            </div>
+              <div style="w3-cell w3-cell-middle w3-container">
+                <a href="/blog/logger.html">Создание класса Logger</a>
               </div>
             </div>
           </li>
