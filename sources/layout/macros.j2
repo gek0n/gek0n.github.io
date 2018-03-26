@@ -1,48 +1,53 @@
 {# 
-   Generates the main and basic menu from context data in the site's
-   configuration file.
+ Generates the main and basic menu from context data in the site's
+ configuration file.
 #}
-{% macro render_basic_menu() -%}
-<ul class="basic">
-{% for menu_item in menu %}
-    <li><a {% if (menu_item.url == resource.relative_path) %}class="selected" {% endif -%}
-        href="{{ content_url(menu_item.url) }}">{{ menu_item.title }}</a></li>
-{% endfor %}
-</ul>
+{% macro render_main_menu() -%}
+<nav id="main" class="w3-bar w3-black w3-top">
+  {% for menu_item in menu %}
+  <a href="{{content_url(menu_item.url)}}" class="w3-bar-item w3-button {% if menu_item.url != "index.html" %} w3-hide-small {% endif %}">{{menu_item.title}}</a>
+  {% endfor %}
+  <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
+  <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+    {% for menu_item in menu if menu_item.url != "index.html"%}
+    <a href="{{content_url(menu_item.url)}}" class="w3-bar-item w3-button">{{menu_item.title}}</a>
+    {% endfor %}
+  </div>
+</nav>
 {%- endmacro %}
 
 
 {# 
-   Generates the advanced menu from all files located in the content/advanced
-   folder. Only advanced section files have 'index' metadata, so we can be
-   certain that no other files will creep in.
+ Generates the advanced menu from all files located in the content/advanced
+ folder. Only advanced section files have 'index' metadata, so we can be
+ certain that no other files will creep in.
 #}
 {% macro render_advanced_menu() -%}
 <ul class="advanced">
 {% for res in site.content.walk_resources_sorted_by_index() %}
-    <li><a {% if (res.url == resource.url) %}class="selected" {% endif -%}
-        href="{{ res.full_url }}">{{ res.meta.title }}</a></li>
+  <li><a {% if (res.url == resource.url) %}class="selected" {% endif -%}
+    href="{{ res.full_url }}">{{ res.meta.title }}</a></li>
 {% endfor %}
 </ul>
 {%- endmacro %}
 
 
 {# 
-   Advanced topics macro. Renders navigation at the end of an advanced
-   article. It also depends on 'index' metadata.
+  Advanced topics macro. Renders navigation at the end of an advanced
+  article. It also depends on 'index' metadata.
 #}
 {% macro render_bottom_article_nav() %}
 <div class="bottom_article_nav">
 {% if resource.next_by_index is not none -%}
-    <div class="next"><a href="{{ resource.next_by_index.full_url }}">
-    {{ resource.next_by_index.meta.title }}</a>
-    &gt;</div>
+  <div class="next"><a href="{{ resource.next_by_index.full_url }}">
+  {{ resource.next_by_index.meta.title }}</a>
+  &gt;</div>
 {%- endif %}
 
 {% if resource.prev_by_index is not none -%}
-    <div class="prev">&lt; <a href="{{ resource.prev_by_index.full_url }}">
-    {{ resource.prev_by_index.meta.title }}</a>
-    </div>
+  <div class="prev">&lt; <a href="{{ resource.prev_by_index.full_url }}">
+  {{ resource.prev_by_index.meta.title }}</a>
+  </div>
 {%- endif %}
 </div>
 {% endmacro %}

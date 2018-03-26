@@ -1,3 +1,4 @@
+{% import "macros.j2" as macros with context %}
 <!doctype html>
 <html lang="en">
   <head>
@@ -24,17 +25,18 @@
     <meta name="keywords" content="{{resource.meta.keywords}}" />
   </head>
   <body>
+    {{ macros.render_main_menu() }}
     <header class="w3-container w3-center w3-padding-64 w3-xxlarge w3-mobile">
       {{resource.meta.title}}
     </header>
     <div class="" style="max-width:800px;margin:0 auto;">
       <ul id="articles" class="w3-ul w3-hoverable w3-large">
         {% for res in resource.node.walk_resources_sorted_by_date() %}
-        <li class="w3-hover-grey w3-card-4">
+        <li class="w3-hover-grey w3-card-4" onclick="location.href='{{ content_url(res.url) }}';">
             <i id="calendar" class="fa fa-calendar-check-o w3-text-dark-red"> [{{res.meta.date}}]</i>
-            <a href="{{ content_url(res.url) }}">
+            <span>
               {{res.meta.title}}
-            </a>
+            </span>
         </li>
         {% endfor %}
       </ul>

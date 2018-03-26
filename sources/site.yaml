@@ -31,11 +31,11 @@ context:
             url: "http://hyde.github.com"
             install: "https://github.com/hyde/hyde#installation"
         menu:
-          - title: Home
+          - title: Главная
             url: index.html
-          - title: First steps
-            url: first-steps.html
-          - title: About
+          - title: Блог
+            url: blog\listing.html
+          - title: Резюме
             url: about.html
 
 markdown:
