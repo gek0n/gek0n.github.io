@@ -58,6 +58,7 @@ meta:
 simple_copy:
     - media/css/*
     - media/js/*
+    - media/js/highlight/*
 sorter:
     name: # the name of the sorter (no pun intended)
         attr: name # by which attributes will resources be sorted
@@ -65,7 +66,7 @@ sorter:
             source_file.kind: html
             # You can include only files from a certain folder.
             #resource.node: (name of the folder)
-        #reverse: True # if you need the list backwards
+        #reverse: true # if you need the list backwards
     file_type:
         attr: 
             - source_file.kind
@@ -78,7 +79,7 @@ sorter:
         attr: meta.date
         filters:
             source_file.kind: html
-        #reverse: True
+        reverse: true
 
     learning_order:
         attr: meta.learning_order
