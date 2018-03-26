@@ -5,14 +5,16 @@ html, body {
   min-width: 450px;
 }
 
-i#calendar {
-  color: rgb(200, 0, 0);
+nav#main {
+  min-width: 450px;
 }
 
-ul#articles.w3-ul a {
-  text-decoration: none;
+ul#articles.w3-ul i#calendar {
+  color: rgb(200, 0, 0);
+  min-width:120px!important;
 }
 
 ul#articles.w3-ul li {
   border-bottom:none;
+  cursor:pointer;
 }
