@@ -3,19 +3,53 @@
  configuration file.
 #}
 {% macro render_main_menu() -%}
-<nav id="main" class="w3-bar w3-black w3-top">
-  {% for menu_item in menu %}
-  <a href="{{content_url(menu_item.url)}}" class="w3-bar-item w3-button {% if menu_item.url != "index.html" %} w3-hide-small {% endif %}">{{menu_item.title}}</a>
-  {% endfor %}
-  <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
-  <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
-    {% for menu_item in menu if menu_item.url != "index.html"%}
-    <a href="{{content_url(menu_item.url)}}" class="w3-bar-item w3-button">{{menu_item.title}}</a>
+  <nav id="main" class="w3-bar w3-black w3-top">
+    {% for menu_item in menu %}
+    <a href="{{content_url(menu_item.url)}}" class="w3-bar-item w3-button {% if menu_item.url != "index.html" %} w3-hide-small {% endif %}">{{menu_item.title}}</a>
     {% endfor %}
-  </div>
-</nav>
+    <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
+    <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+      {% for menu_item in menu if menu_item.url != "index.html"%}
+      <a href="{{content_url(menu_item.url)}}" class="w3-bar-item w3-button">{{menu_item.title}}</a>
+      {% endfor %}
+    </div>
+  </nav>
 {%- endmacro %}
 
+{% macro render_tags_cloud() -%}
+  {% for tagname, tag in site.tagger.tags %}
+    {% set class = namespace(name="w3-gray") %}
+      {% for curtag in resource.meta.tags %}
+        {% if tagname == curtag %}
+          {% set class.name = "w3-dark-gray" %}
+        {% endif %}
+      {% endfor %}
+    <span class="w3-tag w3-margin-bottom {{ class.name }}">{{ tagname|lower }}</span>
+  {% endfor %}
+{%- endmacro %}
+
+{% macro render_recent_posts() -%}
+  <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
+  {% for res in site.content.walk_resources_sorted_by_date() if res.url != resource.url%}
+    {% if loop.index <= 3 %}
+    <li class="w3-hover-grey w3-card-4" onclick="location.href='{{ content_url(res.url) }}';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+        {% for curtag in res.meta.tags if curtag == "ctf" %}
+          <img class="w3-image w3-padding-small" src="{{ media_url('img/icons/ctf.png') }}"/>
+        {% endfor %}
+        </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            {{res.meta.title}}
+          </span>
+        </div>
+      </div>
+    </li>
+    {% endif %}
+  {% endfor %}
+  </ul>
+{%- endmacro %}
 
 {# 
  Generates the advanced menu from all files located in the content/advanced
