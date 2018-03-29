@@ -6,28 +6,260 @@ tags:
     - WIP
 date: 23.03.2018
 ---
-Стандартный способ открытия пайпа через Winapi:
+Стандартный способ коммуникации windows приложений - использование именованных пайпов. Широкие возможности настройки пайпа при создании и открытии позволяют организовывать большое количество различных сценариев работы.
+
+### Дескриптор безопасности по умолчанию
+Пример функций, позволяющих [клиенту][1] работать с именованным пайпом:
+
+```c Client.c
+/* Open named pipe */
+pipe = CreateFileA(
+         "\\\\.\\pipe\\g3k0nPipe",
+         GENERIC_READ | GENERIC_WRITE,
+         0,
+         NULL,
+         OPEN_EXISTING,
+         0,
+         NULL);
+
+if (pipe == INVALID_HANDLE_VALUE) {
+  printf("[-] Failed to open pipe with error: %#X\n", GetLastError());
+  return -1;
+}
+/*...*/
+/* Writing to named pipe */
+/*...*/
+uint32_t success = WriteFile(
+                      pipe,
+                      buf,
+                      bufSz,
+                      &written,
+                      NULL);
+
+if (!success) {
+  printf("[-] Failed write to pipe");
+  return -2;
+}
+/*...*/
+/* Reading from named pipe */
+/*...*/
+success = ReadFile(
+            pipe,
+            buf,
+            BUFFSIZE,
+            &read,
+            NULL);
+
+if (!success) {
+  printf("[-] Failed read from pipe");
+  return -2;
+}
+
+/*...*/
+/* Closing named pipe */
+/*...*/
+CloseHandle(pipe);
+```
+
+Пример функций, необходимых [серверу][2] для создания именованного пайпа:
+
+```c Server.c
+/* Create named pipe */
+pipe = CreateNamedPipeA(
+         "\\\\.\\pipe\\g3k0nPipe",
+         PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+         PIPE_TYPE_MESSAGE |
+         PIPE_READMODE_MESSAGE |
+         PIPE_WAIT,
+         PIPE_UNLIMITED_INSTANCES,
+         BUFFSIZE,
+         BUFFSIZE,
+         0,
+         NULL);
+
+if (pipe == INVALID_HANDLE_VALUE) {
+  printf("[-] Failed to create named pipe with error: %#X\n", GetLastError());
+  return -1;
+}
+
+/* Wait connection to named pipe */
+const uint32_t connected = ConnectNamedPipe(pipe, NULL);
+if (!connected) {
+  CloseHandle(pipe);
+  printf("[-] Failed to connect to named pipe\n");
+  return -2;
+}
+```
+
+При таком способе создания именованного пайпа мы не указывает аттрибуты безопасности (параметр `lpSecurityAttributes` в функции `CreateNamedPipeA`). 
 
 ```c
-void main(uint32_t argc, char *argv[]) {
-    return 0;
+typedef struct _SECURITY_ATTRIBUTES {
+  DWORD  nLength;
+  LPVOID lpSecurityDescriptor;
+  BOOL   bInheritHandle;
+} SECURITY_ATTRIBUTES, *PSECURITY_ATTRIBUTES, *LPSECURITY_ATTRIBUTES;
+```
+
+Следовательно, [согласно MSDN][3], пайп получает дескриптор безопасности по умолчанию. Используя следующий код ([оригинал][5]) выведем на экран значение по умолчанию для дескриптора безопасности.
+
+```cpp GetDescriptor.cpp
+#include <windows.h>
+#include <sddl.h> // ConvertSecurityDescriptorToStringSecurityDescriptor
+
+int WINAPI
+WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+{
+  HANDLE Token;
+  if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &Token)) {
+    DWORD RequiredSize = 0;
+    GetTokenInformation(Token, TokenDefaultDacl, NULL, 0, &RequiredSize);
+    TOKEN_DEFAULT_DACL* DefaultDacl =
+      reinterpret_cast<TOKEN_DEFAULT_DACL*>(LocalAlloc(LPTR, RequiredSize));
+    if (DefaultDacl) {
+      SECURITY_DESCRIPTOR Sd;
+      LPTSTR StringSd;
+      if (GetTokenInformation(Token, TokenDefaultDacl, DefaultDacl,
+        RequiredSize, &RequiredSize) &&
+        InitializeSecurityDescriptor(&Sd, SECURITY_DESCRIPTOR_REVISION) &&
+        SetSecurityDescriptorDacl(&Sd, TRUE,
+          DefaultDacl->DefaultDacl, FALSE) &&
+        ConvertSecurityDescriptorToStringSecurityDescriptor(&Sd,
+          SDDL_REVISION_1, DACL_SECURITY_INFORMATION, &StringSd, NULL)) {
+        MessageBox(NULL, StringSd, TEXT("Result"), MB_OK);
+        LocalFree(StringSd);
+      }
+      LocalFree(DefaultDacl);
+    }
+    CloseHandle(Token);
+  }
+  return 0;
 }
 ```
 
-При использовании этого способа пайп должен быть создан следующим образом:
+Значение, выведенное на экран будет отличаться в зависимости от системы и пользователя, под которым создаётся объект. Для моей системы дескриптор имеет следующее значение:
 
-```c
-void main(uint32_t argc, char *argv[]) {
-    return 0;
+**D:(A;;GA;;;BA)(A;;GA;;;SY)(A;;GXGR;;;S-1-5-5-0-283393)**
+{class="w3-center"}
+
+Для расшифровки этой строки обратимся к [MSDN][6]:
+
+> **D:** - следующая строка описывает DACL  
+> **(A;;GA;;;BA)** - Даёт полный доступ к объекту группе встроеных администраторов  
+> **(A;;GA;;;SY)** - Даёт полный доступ к объекту локальному системному пользователю  
+> **(A;;GXGR;;;S-1-5-5-0-283393)** - Даёт права на чтение и исполнение моему текущему пользователю
+
+Следовательно, если приложение не имеет указанных привилегий, то при попытке открыть именованный пайп функция `CreateFileA` вернёт ошибку `0x5`.
+
+### Настройка дескриптора безопасности
+Для того, чтобы любое непривилегированное приложение могло открыть пайп и работать с ним, необходимо установить соответствующие права при создании пайпа.
+
+```c ConfiguredServer.c
+SID_IDENTIFIER_AUTHORITY SIDAuthWorld;
+PSID pEveryoneSID;
+if (!AllocateAndInitializeSid(&SIDAuthWorld, 1,
+  SECURITY_WORLD_RID,
+  0, 0, 0, 0, 0, 0, 0,
+  &pEveryoneSID)) {
+  printf("AllocateAndInitializeSid Error %#X\n", GetLastError());
+  return FALSE;
 }
-```
 
-Если приложение, создавшее пайп является привилегированным, то операции с пайпом сможет выполнять только другое привилегированное приложение, приэтом непривилегированному приложению будет отказано в доступе.
+EXPLICIT_ACCESS_A ea;
+ZeroMemory(&ea, sizeof(EXPLICIT_ACCESS));
+ea.grfAccessPermissions = FILE_READ_DATA | FILE_WRITE_DATA;;
+ea.grfAccessMode = SET_ACCESS;
+ea.grfInheritance = NO_INHERITANCE;
+ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+ea.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+ea.Trustee.ptstrName = (LPSTR)pEveryoneSID;
 
-Чтобы позволить использовать пайп, созданный привилегированным процессом, в непривилегированном процессе, необходимо при создании пайпа задать аттрибуты безопасности:
+PACL pACL;
+DWORD dwRes;
+dwRes = SetEntriesInAclA(2, &ea, NULL, &pACL);
 
-```cpp
-void main(uint32_t argc, char *argv[]) {
-    return 0;
+PSECURITY_DESCRIPTOR pSD;
+pSD = (PSECURITY_DESCRIPTOR)LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH);
+if (NULL == pSD) {
+  printf("LocalAlloc Error %#X\n", GetLastError());
 }
+
+if (!InitializeSecurityDescriptor(pSD,
+  SECURITY_DESCRIPTOR_REVISION)) {
+  printf("InitializeSecurityDescriptor Error %#X\n", GetLastError());
+}
+
+if (!SetSecurityDescriptorDacl(pSD, TRUE, pACL, FALSE))
+{
+  printf("SetSecurityDescriptorDacl Error %#X\n", GetLastError());
+}
+
+SECURITY_ATTRIBUTES sa;
+sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+sa.lpSecurityDescriptor = pSD;
+sa.bInheritHandle = FALSE;
+
+printf("[>] Creating named pipe...\n");
+pipe = CreateNamedPipeA(
+         "\\\\.\\pipe\\g3k0nPipe",
+         PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+         PIPE_TYPE_MESSAGE |
+         PIPE_READMODE_MESSAGE |
+         PIPE_WAIT,
+         PIPE_UNLIMITED_INSTANCES,
+         BUFFSIZE,
+         BUFFSIZE,
+         0,
+         &sa);
 ```
+Данный код позволяет создать именованный пайп, присвоив ему дескриптор безопасности, который позволяет осуществлять операции чтения и записи любому авторизованному пользователю в системе.
+
+### Проверка на практике
+Получим значения дескрипторов по умолчанию для обычного пользователя (первый скриншот) и для администратора (второй скриншот).
+
+![Default security descriptor for user][user_default_security_descriptor]
+![Default security descriptor for admin][admin_default_security_descriptor]
+
+Теперь попробуем запустить файл `Server.exe` (сверху) от имени пользователя, и от его же имени `Client.exe` (снизу).
+
+![Run server as user and client as user][execute_user_user]
+{class="w3-center"}
+
+Как видно из скриншота, соединение между сервером и клиентом произошло без ошибок. Это ожидаемое поведение, так как при создании именованного пайпа было установлено значение по умолчанию для дескриптора безопасности, позволяющее процессам, запущенным от имени того же пользователя иметь доступ на чтение и запись к пайпу.
+
+Теперь запустим файл `Server.exe` (сверху) от имени администратора, а файл `Client.exe` (снизу) по прежнему от имени пользователя.
+
+![Run server as admin and client as user][execute_admin_user]
+{class="w3-center"}
+
+В данном случае, сервер остаётся ожидать подключения, в то время как клиент получает ошибку с кодом `0x5` ([ERROR_ACCESS_DENIED][7]), возникшую в процессе подключения. Происходит так потому, что дескриптор безопасности по умолчанию не позволяет пользователю открывать на запись именованный пайп, созданный администратором.
+
+Если при создании именованного пайпа вместо значений по умолчанию задать определённый дескриптор безопасности, то можно позволить определённым пользователям совершать указанные действия над объектом пайпа.
+
+![Run configured server as admin and client as user][execute_configured_admin_user]
+{class="w3-center"}
+
+Скриншот демонстрирует, что правильно настроенный сервер `ConfiguredServer.exe`, запущенный из под администратора, создаёт именованный пайп, к которому может подключиться `Client.exe`, запущенный из под пользователя.
+
+Все примеры кода представлены в [моём репозитории на github](https://github.com/gek0n/NamedPipeDemo).
+
+### Ссылки
+
+#### Информация по теме
+1. [Named Pipe Server Using Completion Routines](https://msdn.microsoft.com/ru-ru/library/windows/desktop/aa365601(v=vs.85).aspx)
+2. [Named Pipe Server Using Overlapped I/O](https://msdn.microsoft.com/ru-ru/library/windows/desktop/aa365603(v=vs.85).aspx)
+3. [Named Pipes](https://msdn.microsoft.com/en-us/library/windows/desktop/aa365590(v=vs.85).aspx)
+4. Mark Russinovich "Windows Internal Part 1", 6 edition, Chapter 7 "Networking"
+
+#### Использованные источники:
+[1]: https://msdn.microsoft.com/en-us/library/windows/desktop/aa365592(v=vs.85).aspx "Named Pipe Client"
+[2]: https://msdn.microsoft.com/ru-ru/library/aa365588.aspx "Multithreaded Pipe Server"
+[3]: https://msdn.microsoft.com/ru-ru/library/windows/desktop/aa365150(v=vs.85).aspx "CreateNamedPipe function on MSDN"
+[5]: https://blogs.msdn.microsoft.com/oldnewthing/20040312-00/?p=40273 "Raymond Chen blog post"
+[6]: https://msdn.microsoft.com/en-us/library/windows/desktop/aa374928(v=vs.85).aspx "ACE Strings description"
+[7]: https://msdn.microsoft.com/ru-ru/library/windows/desktop/ms681382%28v=vs.85%29.aspx?f=255&MSPPError=-2147217396 "System Error Codes"
+[user_default_security_descriptor]: {{ media_url('img/blog/named_pipe/user_default_security_descriptor.png') }}
+[admin_default_security_descriptor]: {{ media_url('img/blog/named_pipe/admin_default_security_descriptor.png') }}
+[execute_user_user]: {{ media_url('img/blog/named_pipe/execute_user_user.png') }}
+[execute_admin_user]: {{ media_url('img/blog/named_pipe/execute_admin_user.png') }}
+[execute_configured_admin_user]: {{ media_url('img/blog/named_pipe/execute_configured_admin_user.png') }}
