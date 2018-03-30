@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/media/css/style.css">
     <link rel="stylesheet" href="/media/css/w3.css">
     <link rel="stylesheet" href="/media/css/blog/article.css">
+    <link rel="stylesheet" href="/media/css/font-awesome.min.css">
     <link href="http://fonts.googleapis.com/css?family=Anton"
             rel="stylesheet" type="text/css">
 
@@ -21,15 +22,15 @@
   </head>
   <body onload="addW3ClassesToImages();">
     <nav id="main" class="w3-bar w3-black w3-top">
-    <a href="/index.html" class="w3-bar-item w3-button ">Главная</a>
-    <a href="/blog/listing.html" class="w3-bar-item w3-button  w3-hide-small ">Блог</a>
-    <a href="/about.html" class="w3-bar-item w3-button  w3-hide-small ">Резюме</a>
-    <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
-  <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
-        <a href="/blog/listing.html" class="w3-bar-item w3-button">Блог</a>
-        <a href="/about.html" class="w3-bar-item w3-button">Резюме</a>
-      </div>
-</nav>
+        <a href="/index.html" class="w3-bar-item w3-button ">Главная</a>
+        <a href="/blog/listing.html" class="w3-bar-item w3-button  w3-hide-small ">Блог</a>
+        <a href="/about.html" class="w3-bar-item w3-button  w3-hide-small ">Резюме</a>
+        <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
+    <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+            <a href="/blog/listing.html" class="w3-bar-item w3-button">Блог</a>
+            <a href="/about.html" class="w3-bar-item w3-button">Резюме</a>
+          </div>
+  </nav>
     <header class="w3-container w3-center w3-padding-64 w3-xxlarge w3-mobile">
       RUCTF 2014 QUALS - HARDWARE 100
     </header>
@@ -38,8 +39,6 @@
       <p><em>Название задания:</em> IR dump.<br />
 <em>Описание задания:</em> Какой номер кредитной карты был введен?<br />
 <em>Ход решения:</em></p>
-<!--more-->
-
 <p class="w3-center"><img alt="Source file" src="/media/img/blog/ctf/dump.jpg" /></p>
 <p>Сначала открываем предложенный txt файл и смотрим его содержимое. Первые символы RMC364GY. Далее идет много нулей. Пролистав файл по-быстрому замечаем, что где-то в середине файла присутствуют очень длинные последовательности единичек. То есть HEX декодирование отпадает. Гуглим первые символы в файле, и вместе с названием задания понимаем что нам представлен лог работы устройства под названием: Infrared Remote RM C 364 GY - универсальный инфракрасный пульт управления устройствами (обычно телевизором). Понимаем что декодировать придется ИК сигнал, который шел от пульта к, для определенности, телевизору. Первым делом ищем в гугле <a href="http://www.mindrunway.ru/IRTips.html">варианты кодирования</a> ИК сигнала и находим <a href="http://www.moluch.ru/conf/tech/archive/2/197/">3 способа кодирования</a>:</p>
 <ol>
@@ -150,6 +149,9 @@ open(&quot;decoded_str.txt&quot;, 'w').write(result)
 <li><a href="http://support.jvc.com/consumer/support/documents/RemoteCodes.pdf">http://support.jvc.com/consumer/support/documents/RemoteCodes.pdf</a></li>
 <li><a href="http://irremote.psiloc.com/Show.aspx?d=TV&amp;amp;v=JVC&amp;amp;m=RM%20C364%20GY&amp;amp;i=64739">http://irremote.psiloc.com/Show.aspx?d=TV&amp;v=JVC&amp;m=RM%20C364%20GY&amp;i=64739</a></li>
 </ol>    </article>
+    <button onclick="backToTopFunc()" id="backToTop" class="w3-btn w3-circle w3-red w3-large backToTop" title="Go to top">
+      <i class="fa fa-chevron-circle-up w3-xxxlarge"></i>
+    </button>
     <footer class="w3-row-padding w3-center w3-padding-16">
       <div class="w3-row">
         <div class="w3-third">
@@ -158,41 +160,51 @@ open(&quot;decoded_str.txt&quot;, 'w').write(result)
         <div class="w3-third">
           <h3>Recent posts</h3>
           <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
-                    <li>
-            <div class="w3-cell-row w3-container">
-              <div class="w3-cell">
-                            </div>
-              <div style="w3-cell w3-cell-middle w3-container">
-                <a href="/blog/named_pipe.html">Создание именованного пайпа в привилегированном процессе</a>
-              </div>
-            </div>
-          </li>
-                    <li>
-            <div class="w3-cell-row w3-container">
-              <div class="w3-cell">
-                            </div>
-              <div style="w3-cell w3-cell-middle w3-container">
-                <a href="/blog/file_ctx.html">Передача файлового контекста</a>
-              </div>
-            </div>
-          </li>
-                    <li>
-            <div class="w3-cell-row w3-container">
-              <div class="w3-cell">
-                            </div>
-              <div style="w3-cell w3-cell-middle w3-container">
-                <a href="/blog/logger.html">Создание класса Logger</a>
-              </div>
-            </div>
-          </li>
-                    </ul>
+          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/named_pipe.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Создание именованного пайпа в привилегированном процессе
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/file_ctx.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Передача файлового контекста
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/logger.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Создание класса Logger
+          </span>
+        </div>
+      </div>
+    </li>
+        </ul>
         </div>
         <div class="w3-third">
           <h3>Tags</h3>
-                                                                                                                            <span class="w3-tag w3-margin-bottom w3-dark-gray">writeup</span>
-                                                                                                                            <span class="w3-tag w3-margin-bottom w3-dark-gray">ctf</span>
-                                                                                              <span class="w3-tag w3-margin-bottom w3-gray">wip</span>
-                  </div>
+                                                    <span class="w3-tag w3-margin-bottom w3-gray">windows</span>
+                                                              <span class="w3-tag w3-margin-bottom w3-dark-gray">writeup</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">pipe</span>
+                                                              <span class="w3-tag w3-margin-bottom w3-dark-gray">ctf</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">wip</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">security</span>
+  
+        </div>
       </div>
       <div class="w3-wide w3-opacity w3-tiny w3-text-dark-grey">
         Generated with <a href="https://github.com/hyde/hyde">the Hyde</a>
@@ -201,6 +213,21 @@ open(&quot;decoded_str.txt&quot;, 'w').write(result)
       </div>
     </footer>
     <script>
+    window.onscroll = function() {scrollFunction()};
+
+    function scrollFunction() {
+      if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+        document.getElementById("backToTop").style.display = "block";
+      } else {
+        document.getElementById("backToTop").style.display = "none";
+      }
+    }
+
+    function backToTopFunc() {
+      document.body.scrollTop = 0; // For Safari
+      document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+    }
+
     function toogleNavMenu() {
       var smallMenu = document.getElementById("smallMenu");
       if (smallMenu.className.indexOf("w3-show") == -1) {

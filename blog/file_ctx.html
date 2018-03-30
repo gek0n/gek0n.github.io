@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/media/css/style.css">
     <link rel="stylesheet" href="/media/css/w3.css">
     <link rel="stylesheet" href="/media/css/blog/article.css">
+    <link rel="stylesheet" href="/media/css/font-awesome.min.css">
     <link href="http://fonts.googleapis.com/css?family=Anton"
             rel="stylesheet" type="text/css">
 
@@ -21,15 +22,15 @@
   </head>
   <body onload="addW3ClassesToImages();">
     <nav id="main" class="w3-bar w3-black w3-top">
-    <a href="/index.html" class="w3-bar-item w3-button ">Главная</a>
-    <a href="/blog/listing.html" class="w3-bar-item w3-button  w3-hide-small ">Блог</a>
-    <a href="/about.html" class="w3-bar-item w3-button  w3-hide-small ">Резюме</a>
-    <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
-  <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
-        <a href="/blog/listing.html" class="w3-bar-item w3-button">Блог</a>
-        <a href="/about.html" class="w3-bar-item w3-button">Резюме</a>
-      </div>
-</nav>
+        <a href="/index.html" class="w3-bar-item w3-button ">Главная</a>
+        <a href="/blog/listing.html" class="w3-bar-item w3-button  w3-hide-small ">Блог</a>
+        <a href="/about.html" class="w3-bar-item w3-button  w3-hide-small ">Резюме</a>
+        <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
+    <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+            <a href="/blog/listing.html" class="w3-bar-item w3-button">Блог</a>
+            <a href="/about.html" class="w3-bar-item w3-button">Резюме</a>
+          </div>
+  </nav>
     <header class="w3-container w3-center w3-padding-64 w3-xxlarge w3-mobile">
       Передача файлового контекста
     </header>
@@ -44,12 +45,15 @@
 <blockquote>
 <p>"..для устройств и промежуточных драйверов буфер должен быть NULL, а его длина должна быть 0..."</p>
 </blockquote>
-<p>Адрес, указывающий на данный буффер передаётся в <code>irp-&gt;AssociatedIrp.SystemBuffer</code>, следовательно может быть получен драйвером. Кажется хорошей идеей использовать данный буфер для указания контекста операции. Однако, если попробовать просто передать в него некоторое значение, то функция вернёт код ошибки.</p>
+<p>Адрес, указывающий на данный буффер передаётся в <code class="w3-text-red">irp-&gt;AssociatedIrp.SystemBuffer</code>, следовательно может быть получен драйвером. Кажется хорошей идеей использовать данный буфер для указания контекста операции. Однако, если попробовать просто передать в него некоторое значение, то функция вернёт код ошибки.</p>
 <p>Чтобы можно было использовать этот аргумент правильно, требуется открыть в дизассемблере функцию NtCreateFile, и посмотреть, что именно происходит с этим буффером, и как с ним работать.</p>
 <p>...</p>
-<p>Разобравшись видим, что на самом деле этот параметр указывает на внутреннюю структуру <code>FILE_FULL_EA_INFORMATION</code>, которая описывает элемент односвязного списка, имеющий имя и значение. Если данная структура сформирована неверно, то будет возвращён код ошибки.</p>
+<p>Разобравшись видим, что на самом деле этот параметр указывает на внутреннюю структуру <code class="w3-text-red">FILE_FULL_EA_INFORMATION</code>, которая описывает элемент односвязного списка, имеющий имя и значение. Если данная структура сформирована неверно, то будет возвращён код ошибки.</p>
 <p>При помощи данной структуры мы можем передать несколько дополнительных аргументов, которые будут доступны в драйвере. В их числе и контекст.</p>
 <p>Пример реализации:</p>    </article>
+    <button onclick="backToTopFunc()" id="backToTop" class="w3-btn w3-circle w3-red w3-large backToTop" title="Go to top">
+      <i class="fa fa-chevron-circle-up w3-xxxlarge"></i>
+    </button>
     <footer class="w3-row-padding w3-center w3-padding-16">
       <div class="w3-row">
         <div class="w3-third">
@@ -58,42 +62,52 @@
         <div class="w3-third">
           <h3>Recent posts</h3>
           <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
-                    <li>
-            <div class="w3-cell-row w3-container">
-              <div class="w3-cell">
-                            </div>
-              <div style="w3-cell w3-cell-middle w3-container">
-                <a href="/blog/named_pipe.html">Создание именованного пайпа в привилегированном процессе</a>
-              </div>
-            </div>
-          </li>
-                    <li>
-            <div class="w3-cell-row w3-container">
-              <div class="w3-cell">
-                            </div>
-              <div style="w3-cell w3-cell-middle w3-container">
-                <a href="/blog/logger.html">Создание класса Logger</a>
-              </div>
-            </div>
-          </li>
-                    <li>
-            <div class="w3-cell-row w3-container">
-              <div class="w3-cell">
-                              <img class="w3-image w3-padding-small" src="/media/img/icons/ctf.png"/>
-                            </div>
-              <div style="w3-cell w3-cell-middle w3-container">
-                <a href="/blog/ctf/ructf_2014_quals_hardware_100.html">RUCTF 2014 QUALS - HARDWARE 100</a>
-              </div>
-            </div>
-          </li>
-                    </ul>
+          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/named_pipe.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Создание именованного пайпа в привилегированном процессе
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/logger.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Создание класса Logger
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/ctf/ructf_2014_quals_hardware_100.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                  <img class="w3-image w3-padding-small" src="/media/img/icons/ctf.png"/>
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            RUCTF 2014 QUALS - HARDWARE 100
+          </span>
+        </div>
+      </div>
+    </li>
+        </ul>
         </div>
         <div class="w3-third">
           <h3>Tags</h3>
-                                                                    <span class="w3-tag w3-margin-bottom w3-gray">writeup</span>
-                                                                    <span class="w3-tag w3-margin-bottom w3-gray">ctf</span>
-                                                                                                  <span class="w3-tag w3-margin-bottom w3-dark-gray">wip</span>
-                  </div>
+                                      <span class="w3-tag w3-margin-bottom w3-gray">windows</span>
+                              <span class="w3-tag w3-margin-bottom w3-gray">writeup</span>
+                              <span class="w3-tag w3-margin-bottom w3-gray">pipe</span>
+                              <span class="w3-tag w3-margin-bottom w3-gray">ctf</span>
+                                                <span class="w3-tag w3-margin-bottom w3-dark-gray">wip</span>
+                              <span class="w3-tag w3-margin-bottom w3-gray">security</span>
+  
+        </div>
       </div>
       <div class="w3-wide w3-opacity w3-tiny w3-text-dark-grey">
         Generated with <a href="https://github.com/hyde/hyde">the Hyde</a>
@@ -102,6 +116,21 @@
       </div>
     </footer>
     <script>
+    window.onscroll = function() {scrollFunction()};
+
+    function scrollFunction() {
+      if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+        document.getElementById("backToTop").style.display = "block";
+      } else {
+        document.getElementById("backToTop").style.display = "none";
+      }
+    }
+
+    function backToTopFunc() {
+      document.body.scrollTop = 0; // For Safari
+      document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+    }
+
     function toogleNavMenu() {
       var smallMenu = document.getElementById("smallMenu");
       if (smallMenu.className.indexOf("w3-show") == -1) {

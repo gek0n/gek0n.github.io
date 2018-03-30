@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/media/css/style.css">
     <link rel="stylesheet" href="/media/css/w3.css">
     <link rel="stylesheet" href="/media/css/blog/article.css">
+    <link rel="stylesheet" href="/media/css/font-awesome.min.css">
     <link href="http://fonts.googleapis.com/css?family=Anton"
             rel="stylesheet" type="text/css">
 
@@ -21,38 +22,247 @@
   </head>
   <body onload="addW3ClassesToImages();">
     <nav id="main" class="w3-bar w3-black w3-top">
-    <a href="/index.html" class="w3-bar-item w3-button ">Главная</a>
-    <a href="/blog/listing.html" class="w3-bar-item w3-button  w3-hide-small ">Блог</a>
-    <a href="/about.html" class="w3-bar-item w3-button  w3-hide-small ">Резюме</a>
-    <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
-  <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
-        <a href="/blog/listing.html" class="w3-bar-item w3-button">Блог</a>
-        <a href="/about.html" class="w3-bar-item w3-button">Резюме</a>
-      </div>
-</nav>
+        <a href="/index.html" class="w3-bar-item w3-button ">Главная</a>
+        <a href="/blog/listing.html" class="w3-bar-item w3-button  w3-hide-small ">Блог</a>
+        <a href="/about.html" class="w3-bar-item w3-button  w3-hide-small ">Резюме</a>
+        <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
+    <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+            <a href="/blog/listing.html" class="w3-bar-item w3-button">Блог</a>
+            <a href="/about.html" class="w3-bar-item w3-button">Резюме</a>
+          </div>
+  </nav>
     <header class="w3-container w3-center w3-padding-64 w3-xxlarge w3-mobile">
       Создание именованного пайпа в привилегированном процессе
     </header>
     
     <article class="w3-content w3-justify w3-container w3-col m11 l10" id="article">
-      <p>Стандартный способ открытия пайпа через Winapi:</p>
-<pre><code class="c">void main(uint32_t argc, char *argv[]) {
-    return 0;
+      <p>Стандартный способ коммуникации windows приложений - использование именованных пайпов. Широкие возможности настройки пайпа при создании и открытии позволяют организовывать большое количество различных сценариев работы.</p>
+<h3>Дескриптор безопасности по умолчанию</h3>
+<p>Пример функций, позволяющих <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/aa365592(v=vs.85).aspx" title="Named Pipe Client">клиенту</a> работать с именованным пайпом:</p>
+<div class="w3-container w3-padding w3-red">Client.c</div><pre style="margin-top:0px;"><code class="c">/* Open named pipe */
+pipe = CreateFileA(
+         &quot;\\\\.\\pipe\\g3k0nPipe&quot;,
+         GENERIC_READ | GENERIC_WRITE,
+         0,
+         NULL,
+         OPEN_EXISTING,
+         0,
+         NULL);
+
+if (pipe == INVALID_HANDLE_VALUE) {
+  printf(&quot;[-] Failed to open pipe with error: %#X\n&quot;, GetLastError());
+  return -1;
+}
+/*...*/
+/* Writing to named pipe */
+/*...*/
+uint32_t success = WriteFile(
+                      pipe,
+                      buf,
+                      bufSz,
+                      &amp;written,
+                      NULL);
+
+if (!success) {
+  printf(&quot;[-] Failed write to pipe&quot;);
+  return -2;
+}
+/*...*/
+/* Reading from named pipe */
+/*...*/
+success = ReadFile(
+            pipe,
+            buf,
+            BUFFSIZE,
+            &amp;read,
+            NULL);
+
+if (!success) {
+  printf(&quot;[-] Failed read from pipe&quot;);
+  return -2;
+}
+
+/*...*/
+/* Closing named pipe */
+/*...*/
+CloseHandle(pipe);
+</code></pre>
+
+<p>Пример функций, необходимых <a href="https://msdn.microsoft.com/ru-ru/library/aa365588.aspx" title="Multithreaded Pipe Server">серверу</a> для создания именованного пайпа:</p>
+<div class="w3-container w3-padding w3-red">Server.c</div><pre style="margin-top:0px;"><code class="c">/* Create named pipe */
+pipe = CreateNamedPipeA(
+         &quot;\\\\.\\pipe\\g3k0nPipe&quot;,
+         PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+         PIPE_TYPE_MESSAGE |
+         PIPE_READMODE_MESSAGE |
+         PIPE_WAIT,
+         PIPE_UNLIMITED_INSTANCES,
+         BUFFSIZE,
+         BUFFSIZE,
+         0,
+         NULL);
+
+if (pipe == INVALID_HANDLE_VALUE) {
+  printf(&quot;[-] Failed to create named pipe with error: %#X\n&quot;, GetLastError());
+  return -1;
+}
+
+/* Wait connection to named pipe */
+const uint32_t connected = ConnectNamedPipe(pipe, NULL);
+if (!connected) {
+  CloseHandle(pipe);
+  printf(&quot;[-] Failed to connect to named pipe\n&quot;);
+  return -2;
 }
 </code></pre>
 
-<p>При использовании этого способа пайп должен быть создан следующим образом:</p>
-<pre><code class="c">void main(uint32_t argc, char *argv[]) {
-    return 0;
+<p>При таком способе создания именованного пайпа мы не указывает аттрибуты безопасности (параметр <code class="w3-text-red">lpSecurityAttributes</code> в функции <code class="w3-text-red">CreateNamedPipeA</code>). </p>
+<pre><code class="c">typedef struct _SECURITY_ATTRIBUTES {
+  DWORD  nLength;
+  LPVOID lpSecurityDescriptor;
+  BOOL   bInheritHandle;
+} SECURITY_ATTRIBUTES, *PSECURITY_ATTRIBUTES, *LPSECURITY_ATTRIBUTES;
+</code></pre>
+
+<p>Следовательно, <a href="https://msdn.microsoft.com/ru-ru/library/windows/desktop/aa365150(v=vs.85).aspx" title="CreateNamedPipe function on MSDN">согласно MSDN</a>, пайп получает дескриптор безопасности по умолчанию. Используя следующий код (<a href="https://blogs.msdn.microsoft.com/oldnewthing/20040312-00/?p=40273" title="Raymond Chen blog post">оригинал</a>) выведем на экран значение по умолчанию для дескриптора безопасности.</p>
+<div class="w3-container w3-padding w3-red">GetDescriptor.cpp</div><pre style="margin-top:0px;"><code class="cpp">#include &lt;windows.h&gt;
+#include &lt;sddl.h&gt; // ConvertSecurityDescriptorToStringSecurityDescriptor
+
+int WINAPI
+WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+{
+  HANDLE Token;
+  if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &amp;Token)) {
+    DWORD RequiredSize = 0;
+    GetTokenInformation(Token, TokenDefaultDacl, NULL, 0, &amp;RequiredSize);
+    TOKEN_DEFAULT_DACL* DefaultDacl =
+      reinterpret_cast&lt;TOKEN_DEFAULT_DACL*&gt;(LocalAlloc(LPTR, RequiredSize));
+    if (DefaultDacl) {
+      SECURITY_DESCRIPTOR Sd;
+      LPTSTR StringSd;
+      if (GetTokenInformation(Token, TokenDefaultDacl, DefaultDacl,
+        RequiredSize, &amp;RequiredSize) &amp;&amp;
+        InitializeSecurityDescriptor(&amp;Sd, SECURITY_DESCRIPTOR_REVISION) &amp;&amp;
+        SetSecurityDescriptorDacl(&amp;Sd, TRUE,
+          DefaultDacl-&gt;DefaultDacl, FALSE) &amp;&amp;
+        ConvertSecurityDescriptorToStringSecurityDescriptor(&amp;Sd,
+          SDDL_REVISION_1, DACL_SECURITY_INFORMATION, &amp;StringSd, NULL)) {
+        MessageBox(NULL, StringSd, TEXT(&quot;Result&quot;), MB_OK);
+        LocalFree(StringSd);
+      }
+      LocalFree(DefaultDacl);
+    }
+    CloseHandle(Token);
+  }
+  return 0;
 }
 </code></pre>
 
-<p>Если приложение, создавшее пайп является привилегированным, то операции с пайпом сможет выполнять только другое привилегированное приложение, приэтом непривилегированному приложению будет отказано в доступе.</p>
-<p>Чтобы позволить использовать пайп, созданный привилегированным процессом, в непривилегированном процессе, необходимо при создании пайпа задать аттрибуты безопасности:</p>
-<pre><code class="cpp">void main(uint32_t argc, char *argv[]) {
-    return 0;
+<p>Значение, выведенное на экран будет отличаться в зависимости от системы и пользователя, под которым создаётся объект. Для моей системы дескриптор имеет следующее значение:</p>
+<p class="w3-center"><strong>D:(A;;GA;;;BA)(A;;GA;;;SY)(A;;GXGR;;;S-1-5-5-0-283393)</strong></p>
+<p>Для расшифровки этой строки обратимся к <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/aa374928(v=vs.85).aspx" title="ACE Strings description">MSDN</a>:</p>
+<blockquote>
+<p><strong>D:</strong> - следующая строка описывает DACL<br />
+<strong>(A;;GA;;;BA)</strong> - Даёт полный доступ к объекту группе встроеных администраторов<br />
+<strong>(A;;GA;;;SY)</strong> - Даёт полный доступ к объекту локальному системному пользователю<br />
+<strong>(A;;GXGR;;;S-1-5-5-0-283393)</strong> - Даёт права на чтение и исполнение моему текущему пользователю</p>
+</blockquote>
+<p>Следовательно, если приложение не имеет указанных привилегий, то при попытке открыть именованный пайп функция <code class="w3-text-red">CreateFileA</code> вернёт ошибку <code class="w3-text-red">0x5</code>.</p>
+<h3>Настройка дескриптора безопасности</h3>
+<p>Для того, чтобы любое непривилегированное приложение могло открыть пайп и работать с ним, необходимо установить соответствующие права при создании пайпа.</p>
+<div class="w3-container w3-padding w3-red">ConfiguredServer.c</div><pre style="margin-top:0px;"><code class="c">SID_IDENTIFIER_AUTHORITY SIDAuthWorld;
+PSID pEveryoneSID;
+if (!AllocateAndInitializeSid(&amp;SIDAuthWorld, 1,
+  SECURITY_WORLD_RID,
+  0, 0, 0, 0, 0, 0, 0,
+  &amp;pEveryoneSID)) {
+  printf(&quot;AllocateAndInitializeSid Error %#X\n&quot;, GetLastError());
+  return FALSE;
 }
-</code></pre>    </article>
+
+EXPLICIT_ACCESS_A ea;
+ZeroMemory(&amp;ea, sizeof(EXPLICIT_ACCESS));
+ea.grfAccessPermissions = FILE_READ_DATA | FILE_WRITE_DATA;;
+ea.grfAccessMode = SET_ACCESS;
+ea.grfInheritance = NO_INHERITANCE;
+ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+ea.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+ea.Trustee.ptstrName = (LPSTR)pEveryoneSID;
+
+PACL pACL;
+DWORD dwRes;
+dwRes = SetEntriesInAclA(2, &amp;ea, NULL, &amp;pACL);
+
+PSECURITY_DESCRIPTOR pSD;
+pSD = (PSECURITY_DESCRIPTOR)LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH);
+if (NULL == pSD) {
+  printf(&quot;LocalAlloc Error %#X\n&quot;, GetLastError());
+}
+
+if (!InitializeSecurityDescriptor(pSD,
+  SECURITY_DESCRIPTOR_REVISION)) {
+  printf(&quot;InitializeSecurityDescriptor Error %#X\n&quot;, GetLastError());
+}
+
+if (!SetSecurityDescriptorDacl(pSD, TRUE, pACL, FALSE))
+{
+  printf(&quot;SetSecurityDescriptorDacl Error %#X\n&quot;, GetLastError());
+}
+
+SECURITY_ATTRIBUTES sa;
+sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+sa.lpSecurityDescriptor = pSD;
+sa.bInheritHandle = FALSE;
+
+printf(&quot;[&gt;] Creating named pipe...\n&quot;);
+pipe = CreateNamedPipeA(
+         &quot;\\\\.\\pipe\\g3k0nPipe&quot;,
+         PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+         PIPE_TYPE_MESSAGE |
+         PIPE_READMODE_MESSAGE |
+         PIPE_WAIT,
+         PIPE_UNLIMITED_INSTANCES,
+         BUFFSIZE,
+         BUFFSIZE,
+         0,
+         &amp;sa);
+</code></pre>
+
+<p>Данный код позволяет создать именованный пайп, присвоив ему дескриптор безопасности, который позволяет осуществлять операции чтения и записи любому авторизованному пользователю в системе.</p>
+<h3>Проверка на практике</h3>
+<p>Получим значения дескрипторов по умолчанию для обычного пользователя (первый скриншот) и для администратора (второй скриншот).</p>
+<p><img alt="Default security descriptor for user" onclick="document.getElementById('modal001').style.display='block'" src="/media/img/blog/named_pipe/user_default_security_descriptor.png" style="cursor:zoom-in;" />
+<img alt="Default security descriptor for admin" src="/media/img/blog/named_pipe/admin_default_security_descriptor.png" /><div class="w3-modal w3-animate-zoom w3-center" id="modal001" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/named_pipe/user_default_security_descriptor.png" style="width:95%;height:auto" /></div></p>
+<p>Теперь попробуем запустить файл <code class="w3-text-red">Server.exe</code> (сверху) от имени пользователя, и от его же имени <code class="w3-text-red">Client.exe</code> (снизу).</p>
+<p class="w3-center"><img alt="Run server as user and client as user" onclick="document.getElementById('modal002').style.display='block'" src="/media/img/blog/named_pipe/execute_user_user.png" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal002" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/named_pipe/execute_user_user.png" style="width:95%;height:auto" /></div></p>
+<p>Как видно из скриншота, соединение между сервером и клиентом произошло без ошибок. Это ожидаемое поведение, так как при создании именованного пайпа было установлено значение по умолчанию для дескриптора безопасности, позволяющее процессам, запущенным от имени того же пользователя иметь доступ на чтение и запись к пайпу.</p>
+<p>Теперь запустим файл <code class="w3-text-red">Server.exe</code> (сверху) от имени администратора, а файл <code class="w3-text-red">Client.exe</code> (снизу) по прежнему от имени пользователя.</p>
+<p class="w3-center"><img alt="Run server as admin and client as user" onclick="document.getElementById('modal003').style.display='block'" src="/media/img/blog/named_pipe/execute_admin_user.png" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal003" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/named_pipe/execute_admin_user.png" style="width:95%;height:auto" /></div></p>
+<p>В данном случае, сервер остаётся ожидать подключения, в то время как клиент получает ошибку с кодом <code class="w3-text-red">0x5</code> (<a href="https://msdn.microsoft.com/ru-ru/library/windows/desktop/ms681382%28v=vs.85%29.aspx?f=255&amp;MSPPError=-2147217396" title="System Error Codes">ERROR_ACCESS_DENIED</a>), возникшую в процессе подключения. Происходит так потому, что дескриптор безопасности по умолчанию не позволяет пользователю открывать на запись именованный пайп, созданный администратором.</p>
+<p>Если при создании именованного пайпа вместо значений по умолчанию задать определённый дескриптор безопасности, то можно позволить определённым пользователям совершать указанные действия над объектом пайпа.</p>
+<p class="w3-center"><img alt="Run configured server as admin and client as user" onclick="document.getElementById('modal004').style.display='block'" src="/media/img/blog/named_pipe/execute_configured_admin_user.png" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal004" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/named_pipe/execute_configured_admin_user.png" style="width:95%;height:auto" /></div></p>
+<p>Скриншот демонстрирует, что правильно настроенный сервер <code class="w3-text-red">ConfiguredServer.exe</code>, запущенный из под администратора, создаёт именованный пайп, к которому может подключиться <code class="w3-text-red">Client.exe</code>, запущенный из под пользователя.</p>
+<p>Все примеры кода представлены в <a href="https://github.com/gek0n/NamedPipeDemo">моём репозитории на github</a>.</p>
+<h3>Ссылки</h3>
+<h4>Информация по теме</h4>
+<ol>
+<li><a href="https://msdn.microsoft.com/ru-ru/library/windows/desktop/aa365601(v=vs.85).aspx">Named Pipe Server Using Completion Routines</a></li>
+<li><a href="https://msdn.microsoft.com/ru-ru/library/windows/desktop/aa365603(v=vs.85).aspx">Named Pipe Server Using Overlapped I/O</a></li>
+<li><a href="https://msdn.microsoft.com/en-us/library/windows/desktop/aa365590(v=vs.85).aspx">Named Pipes</a></li>
+<li>Mark Russinovich "Windows Internal Part 1", 6 edition, Chapter 7 "Networking"</li>
+</ol>
+<h4>Использованные источники:</h4>
+<ol>
+<li><a href="https://msdn.microsoft.com/en-us/library/windows/desktop/aa365592(v=vs.85).aspx" title="Named Pipe Client">Named Pipe Client</a></li>
+<li><a href="https://msdn.microsoft.com/ru-ru/library/aa365588.aspx" title="Multithreaded Pipe Server">Multithreaded Pipe Server</a></li>
+<li><a href="https://msdn.microsoft.com/ru-ru/library/windows/desktop/aa365150(v=vs.85).aspx" title="CreateNamedPipe function on MSDN">CreateNamedPipe function on MSDN</a></li>
+<li><a href="https://blogs.msdn.microsoft.com/oldnewthing/20040312-00/?p=40273" title="Raymond Chen blog post">Raymond Chen blog post</a></li>
+<li><a href="https://msdn.microsoft.com/en-us/library/windows/desktop/aa374928(v=vs.85).aspx" title="ACE Strings description">ACE Strings description</a></li>
+<li><a href="https://msdn.microsoft.com/ru-ru/library/windows/desktop/ms681382%28v=vs.85%29.aspx?f=255&amp;MSPPError=-2147217396" title="System Error Codes">System Error Codes</a></li>
+</ol>    </article>
+    <button onclick="backToTopFunc()" id="backToTop" class="w3-btn w3-circle w3-red w3-large backToTop" title="Go to top">
+      <i class="fa fa-chevron-circle-up w3-xxxlarge"></i>
+    </button>
     <footer class="w3-row-padding w3-center w3-padding-16">
       <div class="w3-row">
         <div class="w3-third">
@@ -61,42 +271,52 @@
         <div class="w3-third">
           <h3>Recent posts</h3>
           <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
-                    <li>
-            <div class="w3-cell-row w3-container">
-              <div class="w3-cell">
-                            </div>
-              <div style="w3-cell w3-cell-middle w3-container">
-                <a href="/blog/file_ctx.html">Передача файлового контекста</a>
-              </div>
-            </div>
-          </li>
-                    <li>
-            <div class="w3-cell-row w3-container">
-              <div class="w3-cell">
-                            </div>
-              <div style="w3-cell w3-cell-middle w3-container">
-                <a href="/blog/logger.html">Создание класса Logger</a>
-              </div>
-            </div>
-          </li>
-                    <li>
-            <div class="w3-cell-row w3-container">
-              <div class="w3-cell">
-                              <img class="w3-image w3-padding-small" src="/media/img/icons/ctf.png"/>
-                            </div>
-              <div style="w3-cell w3-cell-middle w3-container">
-                <a href="/blog/ctf/ructf_2014_quals_hardware_100.html">RUCTF 2014 QUALS - HARDWARE 100</a>
-              </div>
-            </div>
-          </li>
-                    </ul>
+          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/file_ctx.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Передача файлового контекста
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/logger.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Создание класса Logger
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/ctf/ructf_2014_quals_hardware_100.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                  <img class="w3-image w3-padding-small" src="/media/img/icons/ctf.png"/>
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            RUCTF 2014 QUALS - HARDWARE 100
+          </span>
+        </div>
+      </div>
+    </li>
+        </ul>
         </div>
         <div class="w3-third">
           <h3>Tags</h3>
-                                                                    <span class="w3-tag w3-margin-bottom w3-gray">writeup</span>
-                                                                    <span class="w3-tag w3-margin-bottom w3-gray">ctf</span>
-                                                                                                  <span class="w3-tag w3-margin-bottom w3-dark-gray">wip</span>
-                  </div>
+                                                                                    <span class="w3-tag w3-margin-bottom w3-dark-gray">windows</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">writeup</span>
+                                                                            <span class="w3-tag w3-margin-bottom w3-dark-gray">pipe</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">ctf</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">wip</span>
+                                                                            <span class="w3-tag w3-margin-bottom w3-dark-gray">security</span>
+  
+        </div>
       </div>
       <div class="w3-wide w3-opacity w3-tiny w3-text-dark-grey">
         Generated with <a href="https://github.com/hyde/hyde">the Hyde</a>
@@ -105,6 +325,21 @@
       </div>
     </footer>
     <script>
+    window.onscroll = function() {scrollFunction()};
+
+    function scrollFunction() {
+      if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+        document.getElementById("backToTop").style.display = "block";
+      } else {
+        document.getElementById("backToTop").style.display = "none";
+      }
+    }
+
+    function backToTopFunc() {
+      document.body.scrollTop = 0; // For Safari
+      document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+    }
+
     function toogleNavMenu() {
       var smallMenu = document.getElementById("smallMenu");
       if (smallMenu.className.indexOf("w3-show") == -1) {
