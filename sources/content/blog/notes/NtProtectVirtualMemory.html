@@ -1,0 +1,26 @@
+---
+title: Описание NtProtectVirtualMemory
+description: Краткая информация о функции NtProtectVirtualMemory
+keywords: microsoft, windows, winapi, ntprotectvirtualmemory
+tags:
+    - winapi
+    - note
+date: 18.04.2018
+---
+Функция `NtProtectVirtualMemory` является внутренней и недокументированной. Предназначена для изменения параметров защиты страниц памяти указанного процесса.
+
+```c
+NTSYSAPI
+NTSTATUS
+NTAPI
+NtProtectVirtualMemory(
+  IN HANDLE               ProcessHandle,            // Хэндл процесса
+  IN OUT PVOID            *BaseAddress,             // Указатель на переменную, хранящую стартовый адрес страницы памяти
+  IN OUT SIZE_T           *NumberOfBytesToProtect,  // Указатель на переменную, хранящую размер страницы памяти
+  IN ULONG                NewAccessProtection,      // Новое значение параметра защиты
+  OUT PULONG              OldAccessProtection);     // Старое значение параметра защиты
+```
+
+Функция `NtProtectVirtualMemory` отличается от [`VirtualProtect`][VirtualProtect] тем, что использует указатели на размер и стартовый адрес, а в случае успеха аргументы будут содержать реальный базовый адрес страницы и её размер соответственно.
+
+[VirtualProtect]: https://msdn.microsoft.com/ru-ru/library/windows/desktop/aa366898%28v=vs.85%29.aspx?f=255&MSPPError=-2147217396 "VirtualProtect function MSDN"
