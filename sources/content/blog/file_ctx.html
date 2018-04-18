@@ -1,27 +1,69 @@
 ---
 title: Передача файлового контекста
 description: Статья о передаче контекста ядерному устройству при открытии его из пользовательского пространства
-keywords: createfile, file, zwcreatefile, ntcreatefile, context, ctx, driver, microsoft, windows
+keywords: createfile, file, zwcreatefile, ntcreatefile, context, ctx, driver, microsoft, windows, winapi
 tags:
-    - WIP
+    - winapi
 date: 21.03.2018
 ---
 Для взаимодейтсвия пользовательских приложений с драйверами, работающими в режиме ядра используются системные устройства Device. Такой Device может быть создан и зарегистрирован в системе драйвером, после чего пользовательское приложение может открывать его через CreateFile, и читать/писать данные, а также посылать управляющие коды, используя функцию IOCTL.
 
-В тех случаях, когда драйвер выполняет большое количество различных функций и должен производить обмен данными с разными частями пользовательского приложения (или с разными приложениями) по разному, требуется указывать драйверу, с каким приложением в данный момент он работает.
+В тех случаях, когда драйвер выполняет большое количество различных функций и должен производить обмен данными с разными частями пользовательского приложения (или с разными приложениями) по разному, требуется указывать драйверу, в каком контексте в данный момент он работает.
 
-Существуют разные способы:
+Существуют разные способы коммуникации с драйвером:
 
-Описание способов...
+1. Прямой вызов IOCTL
+2. Обратный вызов IOCTL
+3. Использование имён файлов при чтении и записи
+4. Использование именованных пайпов
 
-### Недокументированный способ передачи файлового контекста
-Для открытия устрйоства используется функция ZwCreateFile, которая принимает последними параметрами буффер EaBuffer и его длину EaLength. Согласно документации MSDN,
+### Использование внутренней структуры
+Для открытия устройства используется функция `ZwCreateFile`, которая принимает последними параметрами буффер `EaBuffer` и его длину `EaLength`. Согласно документации MSDN,
 
 > "..для устройств и промежуточных драйверов буфер должен быть NULL, а его длина должна быть 0..."
 
 Адрес, указывающий на данный буффер передаётся в `irp->AssociatedIrp.SystemBuffer`, следовательно может быть получен драйвером. Кажется хорошей идеей использовать данный буфер для указания контекста операции. Однако, если попробовать просто передать в него некоторое значение, то функция вернёт код ошибки.
 
-Чтобы можно было использовать этот аргумент правильно, требуется открыть в дизассемблере функцию NtCreateFile, и посмотреть, что именно происходит с этим буффером, и как с ним работать.
+Чтобы можно было использовать этот аргумент правильно, требуется открыть в дизассемблере функцию `NtCreateFile`, и посмотреть, что именно происходит с этим буффером, и как с ним работать.
+
+![Call tree for NtCreateFile][calltree]
+
+Как показано на скриншоте, буфер проходит цепочку вызовов, перед тем как быть переданным в драйвер. Функция, которая проверяет консистентность буфера называется `IoCheckEaBufferValidity`. Согласно [WRK][1] эта функция проверяет, соответствует ли переданный `EaBuffer` формату структуры `FILE_FULL_EA_INFORMATION`.
+
+*Если необходимо, можно ознакомиться с кодом этой функции используя исходники [WRK][1]*
+
+```c
+NTSTATUS
+IoCheckEaBufferValidity(
+    IN PFILE_FULL_EA_INFORMATION EaBuffer,
+    IN ULONG EaLength,
+    OUT PULONG ErrorOffset
+    )
+/*++
+
+Routine Description:
+
+    This routine checks the validity of the specified EA buffer to guarantee
+    that its format is proper, no fields hang over, that it is not recursive,
+    etc.
+
+Arguments:
+
+    EaBuffer - Pointer to the buffer containing the EAs to be checked.
+
+    EaLength - Specifies the length of EaBuffer.
+
+    ErrorOffset - A variable to receive the offset of the offending entry
+        in the EA buffer if an error is incurred.  This variable is only
+        valid if an error occurs.
+
+Return Value:
+
+    The function value is STATUS_SUCCESS if the EA buffer contains a valid,
+    properly formed list, otherwise STATUS_EA_LIST_INCONSISTENT.
+
+--*/
+```
 
 ...
 
@@ -30,3 +72,12 @@ date: 21.03.2018
 При помощи данной структуры мы можем передать несколько дополнительных аргументов, которые будут доступны в драйвере. В их числе и контекст.
 
 Пример реализации:
+
+#### Информация по теме
+1. [Communication between user and kernel-mode](http://www.angelhernandezm.com/communication-between-user-and-kernel-mode/)
+2. Walter Oney "Programming the MS Windows Driver Model", 2 edition
+
+#### Использованные источники:
+[1]: https://github.com/markjandrews/wrk-v1.2 "WRK source code"
+
+[calltree]: {{ media_url('img/blog/file_ctx/IoCheckEaBufferValidity_calltree.png') }}
