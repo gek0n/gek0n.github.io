@@ -77,6 +77,7 @@ sorter:
             source_file.kind: html
     date:
         attr: meta.date
+        type_name: date
         filters:
             source_file.kind: html
         reverse: true
