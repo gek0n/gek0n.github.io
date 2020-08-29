@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Blog| Описание NtProtectVirtualMemory</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/media/css/style.css">
+    <link rel="stylesheet" href="/media/css/w3.css">
+    <link rel="stylesheet" href="/media/css/blog/article.css">
+    <link rel="stylesheet" href="/media/css/font-awesome.min.css">
+    <link href="http://fonts.googleapis.com/css?family=Anton"
+            rel="stylesheet" type="text/css">
+
+    <!-- Turn on code highlighting -->
+    <link rel="stylesheet" href="/media/css/highlight/hybrid.css">
+    <script src="/media/js/highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    <meta name="author" content="Загурский Михаил" />
+    <meta name="description" content="Краткая информация о функции NtProtectVirtualMemory" />
+    <meta name="generator" content="Hyde 0.8.9" />
+    <meta name="keywords" content="microsoft, windows, winapi, ntprotectvirtualmemory" />
+  </head>
+  <body onload="addW3ClassesToImages();">
+    <nav id="main" class="w3-bar w3-black w3-top">
+        <a href="/index.html" class="w3-bar-item w3-button ">Главная</a>
+        <a href="/blog/listing.html" class="w3-bar-item w3-button  w3-hide-small ">Блог</a>
+        <a href="/about.html" class="w3-bar-item w3-button  w3-hide-small ">Резюме</a>
+        <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
+    <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+            <a href="/blog/listing.html" class="w3-bar-item w3-button">Блог</a>
+            <a href="/about.html" class="w3-bar-item w3-button">Резюме</a>
+          </div>
+  </nav>
+    <header class="w3-container w3-center w3-padding-64 w3-xxlarge w3-mobile">
+      Описание NtProtectVirtualMemory
+    </header>
+    
+    <article class="w3-content w3-justify w3-container w3-col m11 l10" id="article">
+      <p>Функция <code class="w3-text-red">NtProtectVirtualMemory</code> является внутренней и недокументированной. Предназначена для изменения параметров защиты страниц памяти указанного процесса.</p>
+<pre><code class="c">NTSYSAPI
+NTSTATUS
+NTAPI
+NtProtectVirtualMemory(
+  IN HANDLE               ProcessHandle,            // Хэндл процесса
+  IN OUT PVOID            *BaseAddress,             // Указатель на переменную, хранящую стартовый адрес страницы памяти
+  IN OUT SIZE_T           *NumberOfBytesToProtect,  // Указатель на переменную, хранящую размер страницы памяти
+  IN ULONG                NewAccessProtection,      // Новое значение параметра защиты
+  OUT PULONG              OldAccessProtection);     // Старое значение параметра защиты
+</code></pre>
+
+<p>Функция <code class="w3-text-red">NtProtectVirtualMemory</code> отличается от <a href="https://msdn.microsoft.com/ru-ru/library/windows/desktop/aa366898%28v=vs.85%29.aspx?f=255&amp;MSPPError=-2147217396" title="VirtualProtect function MSDN"><code class="w3-text-red">VirtualProtect</code></a> тем, что использует указатели на размер и стартовый адрес, а в случае успеха аргументы будут содержать реальный базовый адрес страницы и её размер соответственно.</p>    </article>
+    <button onclick="backToTopFunc()" id="backToTop" class="w3-btn w3-circle w3-red w3-large backToTop" title="Go to top">
+      <i class="fa fa-chevron-circle-up w3-xxxlarge"></i>
+    </button>
+    <footer class="w3-row-padding w3-center w3-padding-16">
+      <div class="w3-row">
+        <div class="w3-third">
+          <h3>About</h3>
+        </div>
+        <div class="w3-third">
+          <h3>Recent posts</h3>
+          <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
+          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/C%2B%2B_unicode_output.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Отображение Unicode строк в C++
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/named_pipe.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Создание именованного пайпа в привилегированном процессе
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/file_ctx.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Передача файлового контекста
+          </span>
+        </div>
+      </div>
+    </li>
+                    </ul>
+        </div>
+        <div class="w3-third">
+          <h3>Tags</h3>
+                                                                      <span class="w3-tag w3-margin-bottom w3-dark-gray">note</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">string</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">windows</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">writeup</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">pipe</span>
+                                                              <span class="w3-tag w3-margin-bottom w3-dark-gray">winapi</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">ctf</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">unicode</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">linux</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">security</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">logs</span>
+  
+        </div>
+      </div>
+      <div class="w3-wide w3-opacity w3-tiny w3-text-dark-grey">
+        Generated with <a href="https://github.com/hyde/hyde">the Hyde</a>
+        <br>
+        Powered by <a href="https://www.w3schools.com/w3css/default.asp" target="_blank">w3.css</a>
+      </div>
+    </footer>
+    <script>
+    window.onscroll = function() {scrollFunction()};
+
+    function scrollFunction() {
+      if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+        document.getElementById("backToTop").style.display = "block";
+      } else {
+        document.getElementById("backToTop").style.display = "none";
+      }
+    }
+
+    function backToTopFunc() {
+      document.body.scrollTop = 0; // For Safari
+      document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+    }
+
+    function toogleNavMenu() {
+      var smallMenu = document.getElementById("smallMenu");
+      if (smallMenu.className.indexOf("w3-show") == -1) {
+        smallMenu.className += " w3-show";
+      } else {
+        smallMenu.className = smallMenu.className.replace(" w3-show", "");
+      }
+    }
+
+    function addW3ClassesToImages() {
+      var imgs = document.getElementById("article").getElementsByTagName("img");
+      for (i = 0; i < imgs.length; i++) {
+        console.log(imgs[i].src);
+        imgs[i].className += " w3-card";
+        imgs[i].className += " w3-image";
+      }
+    }
+    </script>
+  </body>
+</html>

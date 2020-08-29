@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Blog| Отображение Unicode строк в C++</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/media/css/style.css">
+    <link rel="stylesheet" href="/media/css/w3.css">
+    <link rel="stylesheet" href="/media/css/blog/article.css">
+    <link rel="stylesheet" href="/media/css/font-awesome.min.css">
+    <link href="http://fonts.googleapis.com/css?family=Anton"
+            rel="stylesheet" type="text/css">
+
+    <!-- Turn on code highlighting -->
+    <link rel="stylesheet" href="/media/css/highlight/hybrid.css">
+    <script src="/media/js/highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    <meta name="author" content="Загурский Михаил" />
+    <meta name="description" content="Статья описывает особенности обработки UTF-8 и UTF-16 строк на разных операционных системах с использованием разных компиляторов" />
+    <meta name="generator" content="Hyde 0.8.9" />
+    <meta name="keywords" content="unicode, utf8, utf16, c++, windows, linux, vs2019, visual_studio, mingw, clang" />
+  </head>
+  <body onload="addW3ClassesToImages();">
+    <nav id="main" class="w3-bar w3-black w3-top">
+        <a href="/index.html" class="w3-bar-item w3-button ">Главная</a>
+        <a href="/blog/listing.html" class="w3-bar-item w3-button  w3-hide-small ">Блог</a>
+        <a href="/about.html" class="w3-bar-item w3-button  w3-hide-small ">Резюме</a>
+        <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
+    <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+            <a href="/blog/listing.html" class="w3-bar-item w3-button">Блог</a>
+            <a href="/about.html" class="w3-bar-item w3-button">Резюме</a>
+          </div>
+  </nav>
+    <header class="w3-container w3-center w3-padding-64 w3-xxlarge w3-mobile">
+      Отображение Unicode строк в C++
+    </header>
+    
+    <article class="w3-content w3-justify w3-container w3-col m11 l10" id="article">
+      <p>Для корректного вывода символов Unicode в консоли, необходимо выполнить следующие требования:</p>
+<ol>
+<li><strong>Консоль должна уметь отображать выбранную кодировку Unicode</strong><br />
+Для этого шрифт консоли должен содержать начертания для всех символов Unicode (TrueType), кодировка, в которой символы выводятся на экран (кодовая страница в Windows), должна соответствовать соответствующей кодировке Unicode.</li>
+<li><strong>Консольное приложение должно отправлять символы в консоль в выбранной кодировке Unicode</strong><br />
+Стартующее приложение наследует настройки по умолчанию от консоли, поэтому в некоторых системах требуется явно выставить кодировку для stdout.</li>
+<li><strong>Консольное приложение должно понимать выбранную кодировку Unicode, чтобы отправлять символы, состоящие из нескольких байт, как один символ в консоль</strong><br />
+Библиотеки, которые реализуют коммуникацию с stdout хендлом, должны правильно понимать соответствующую кодировку Unicode, чтобы обрабатывать многобайтовые символы за один раз. Для этого в некоторых случаях достаточно явного указания локали для библиотеки, а иногда требуется также установить буфер, который позволит отправлять текст из многобайтовых символов одной операцией, однако такие буферы не гарантируют что символы не отправятся частично.</li>
+<li><strong>Компилятор должен поддерживать работу с символами в выбранной кодировке Unicode</strong><br />
+Компилятор должен правильно интерпретировать строковые литералы, согласно документации, а также уметь принимать на вход файлы исходного кода в разных кодировках.  </li>
+<li><strong>Файлы исходного кода (либо файлы ресурсов) должны быть сохранены в выбранной кодировке Unicode</strong><br />
+Это необходимо сделать, чтобы не увеличивать количество настроек компилятора.</li>
+</ol>
+<h3>Подробное описание</h3>
+<h4>Кодировка Unicode</h4>
+<p>Стандарт, <a href="https://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4" title="Unicode encoding (Wikipedia)">предложенный в 1991 году</a> для кодирования всех символов, не требующий переключения кодовых страниц. Состоит из двух основных частей: универсального набора символов (UCS) и семейства кодировок (UTF). UCS определяет каждому символу уникальный код, в то время как UTF определяет способы преобразования кодов этих символов для передачи в потоке или файле.</p>
+<p>Кодировка <a href="https://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4" title="Unicode encoding (Wikipedia)">UTF-8</a> позволяет записывать символы таким образом, что ASCII символы могут быть обработаны любой программой, работающей с ASCII, и наоборот. Остальные символы Unicode отображаются при помощи последовательности от 2 до 4 байт, где первый байт всегда имеет маску <code class="w3-text-red">11xxxxxx</code>, а остальные <code class="w3-text-red">10xxxxxx</code>.</p>
+<p>Кодировка <a href="https://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4" title="Unicode encoding (Wikipedia)">UTF-16</a> позволяет записать каждый символ 1 или 2 словами (1 слово = 2 байта).</p>
+<p>Кодировка <a href="https://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4" title="Unicode encoding (Wikipedia)">UTF-32</a> позволяет записать каждый символ при помощи ровно 4 байт, а также непосредственное индексирование в строках, простые операции замены и вставки.</p>
+<p>Для UTF-16 и UTF-32 существует возможность записи байт: младший перед старшим (little endian, LE) или старший перед младшим (big endian, BE).</p>
+<p>Для указания порядка записи байт, в файле иногда применяется <a href="https://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4" title="Unicode encoding (Wikipedia)">маркер последовательности байт</a> (byte order mark, BOM) - символ неразрывного пробела нулевой ширины U+FEFF. По его записи легко различить кодировку.</p>
+<h4>Поддержка Unicode в ОС</h4>
+<p>Все современные ОС поддерживают Unicode, но для совместимости с различными старыми системами, подсистемами и стандартами остались и старые способы адресации символов.</p>
+<h5>Windows</h5>
+<p><a href="https://en.wikipedia.org/wiki/Windows_code_page#:~:text=ANSI%20code%20page,-Windows%2D125x%20series&amp;text=ANSI%20code%20pages%20(officially%20called,user%20interface%20on%20Windows%20systems." title="Windows code page (Wikipedia)">Первые версии Windows</a> и других ОС практически не разделяли на разные понятия байты и символы, поэтому 1 байт мог кодировать 255 символов. Чтобы иметь возможность выводить на экран символы, относящиеся к национальным алфавитам, а также выводить другие специальные символы, в Windows была взята идея кодовых страниц (<a href="https://docs.microsoft.com/en-us/windows/win32/intl/code-pages" title="Code pages (MSDN)">Code pages</a>).</p>
+<p>Кодовые страницы это кодировки, которые состоят из первых 128 значений ASCII символов, и ещё 127 символов меняются от страницы к странице и представляют национальные (ANSI) или иные символы (OEM). Символы кодовых страниц с номерами от <code class="w3-text-red">0x00</code> до <code class="w3-text-red">0x1F</code> и <code class="w3-text-red">0x7F</code> обычно представляют универсальные управляющие символы, символы с кодами от <code class="w3-text-red">0x20</code> до <code class="w3-text-red">0x7E</code> - печатные символы, символы с кодами от <code class="w3-text-red">0x80</code> до <code class="w3-text-red">0xFF</code> различаются у каждой кодовой страницы.</p>
+<p>По внутреннему устройству кодовые страницы могут быть <a href="https://docs.microsoft.com/en-us/windows/win32/intl/code-pages" title="Code pages (MSDN)">однобайтовые (SBCS) и двухбайтовые (DBCS)</a>. Первые представляют прямую кодировку одного символа одним байтом, итого 256 символов, вторые обычно используют последовательность из <em>двух</em> байт для представления одного символа. Также существуют <a href="https://docs.microsoft.com/en-us/windows/win32/intl/code-pages" title="Code pages (MSDN)">многобайтовые (MBCS)</a> кодировки, которые используют более длинные последовательности байт для представления одного символа. Однако стоит отметить, что ни одна из этих кодировок не умеет полностью отображать все символы Unicode.</p>
+<p>Начиная с линейки <strong>Windows NT</strong> <a href="https://en.wikipedia.org/wiki/Unicode_in_Microsoft_Windows" title="Unicode in Windows (Wikipedia)">система Windows поддерживает кодировку Unicode UTF-16</a>, которая использует 2 байта для каждого символа. Все внутренние представления строковых данных в Windows <a href="https://docs.microsoft.com/en-us/windows/win32/intl/unicode" title="Unicode in Windows (MSDN)">по умолчанию хранятся и обрабатываются в UTF-16</a>. Такие строки, согласно внутренней терминологии, называются <code class="w3-text-red">WideChar</code>, в то время как все кодовые страницы называются <code class="w3-text-red">MultiByte</code>. Рекомендуется во всех приложениях для Windows использовать для внутреннего представления кодировку UTF-16.</p>
+<p>Для поддержки старого 8-ми и 7-ми битного окружения в Windows добавлена <a href="https://docs.microsoft.com/en-us/windows/win32/intl/unicode" title="Unicode in Windows (MSDN)">поддержка UTF-7 и UTF-8</a> в виде многобайтовых кодовых страниц. </p>
+<p>Часто требуется работа с окружением, поддерживающим только MBCS кодировки, тогда <a href="https://docs.microsoft.com/en-us/windows/win32/intl/unicode" title="Unicode in Windows (MSDN)">следует использовать функции</a> для преобразования <code class="w3-text-red">MultiByteToWideChar</code> и <code class="w3-text-red">WideCharToMultiByte</code>.</p>
+<p>Командной строке Windows при создании назначается кодовая страница по умолчанию, номер которой <a href="https://stackoverflow.com/questions/14109024/how-to-make-unicode-charset-in-cmd-exe-by-default" title="Change default cmd.exe encoding (StackOverflow)">берётся из реестра</a>. Поменять кодовую страницу можно либо при помощи утилиты <code class="w3-text-red">chcp</code> или <a href="https://docs.microsoft.com/ru-ru/windows/console/setconsoleoutputcp" title="Function SetConsoleOutputCP (MSDN)">использовав функцию <code class="w3-text-red">SetConsoleOutputCP</code></a> в приложении. По умолчанию терминал Windows умеет выводить MultiByte символы и WideChar символы, главное чтобы шрифт, используемый терминалом поддерживал Unicode символы (<a href="https://ru.wikipedia.org/wiki/TrueType#:~:text=TrueType%20(%C2%AB%D1%82%D1%80%D1%83%D1%82%D0%B0%D0%B9%D0%BF%C2%BB)%20%E2%80%94,%D0%B8%D0%BC%D0%B5%D1%8E%D1%82%20%D1%80%D0%B0%D1%81%D1%88%D0%B8%D1%80%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%B8%D0%BC%D0%B5%D0%BD%D0%B8%20%C2%ABttf%C2%BB." title="TrueType fonts">TrueType</a>).</p>
+<p>В Windows по умолчанию используется <a href="https://en.wikipedia.org/wiki/NTFS" title="NTFS filesystem (Wikipedia)">файловая система NTFS</a>, которая поддерживает имена файлов в формате UTF-16, содержимое файла может быть в любой кодировке.</p>
+<h5>Linux</h5>
+<p>В Linux нет понятия кодовых страниц, вместо этого используется понятие локали (locale) с <a href="https://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.admin.nls.doc/doc/c0051307.html" title="Linux default encoding">Unicode UTF-8 в качестве основной кодировки</a>. В этой операционной системе различные приложения могут иметь <a href="https://stackoverflow.com/a/45809387/3212675" title="Linux locale (StackOverflow)">разную локаль</a>, а некоторые процессы могут иметь разные локали для разных <a href="https://www.gnu.org/software/libc/manual/html_node/Locale-Categories.html" title="Locale categories (GNU)">категорий</a>. Программы на <code class="w3-text-red">C</code> и <code class="w3-text-red">C++</code> стартуют <a href="https://www.gnu.org/software/libc/manual/html_node/Standard-Locales.html" title="Standard locales (GNU)">по умолчанию с локалью <strong>C</strong></a>.</p>
+<p>Командная строка Linux при создании <a href="https://www.tecmint.com/set-system-locales-in-linux/" title="Set linux system locale">автоматически получает системную локаль</a>, которая почти всегда основана на UTF-8. По умолчанию шрифты терминала в Linux обычно поддерживают символы Unicode.</p>
+<p>Linux может иметь различные файловые системы, большинство из них воспринимают имена файлов как <a href="https://unix.stackexchange.com/questions/38055/utf-8-filenames" title="Linux filename encoding (StackOverflow)">обычную последовательность байт</a>, а не символов, поэтому могут приниматься различные кодировки. Предпочтительной является UTF-8 как для имени файла, так и для его содержимого.</p>
+<h4>Понятие локали</h4>
+<p>Понятие <a href="https://docs.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-international-core-winpe-systemlocale" title="Windows System locale (MSDN)">системной локали в Windows</a> содержит в себе название шрифта, и кодовой страницы, которые используются для ANSI программ. Программы использующие Unicode не зависят от этой настройки.</p>
+<p>Понятие <a href="https://man7.org/linux/man-pages/man7/locale.7.html" title="Linux system locale">системной локали в Linux</a> содержит в себе большой список раличных категорий, к которым могут быть применены набор национальных правил, определяющих не только язык и кодировку, но и правила написания дат, времени, адресов и т.д.</p>
+<h4>Язык С++ и Unicode</h4>
+<p>В терминологии языка C++ сипользуется три основных понятия:
+- <a href="https://en.cppreference.com/w/cpp/string/byte" title="Null-terminated byte strings">однобайтовые строки (Null-terminated byte strings, NTBS)</a>;
+- <a href="https://en.cppreference.com/w/cpp/string/multibyte" title="Null-terminated multibyte strings">многобайтовые строки (Null-terminated multibyte strings, NTMBS)</a>;
+- <a href="https://en.cppreference.com/w/cpp/string/wide" title="Null-terminated wide strings">широкие строки (Null-terminated wide strings, NTWS)</a>.</p>
+<p>Основываются эти понятия на основе шаблонных классов <a href="https://en.cppreference.com/w/cpp/string" title="Strings library in C++"><code class="w3-text-red">std::basic_string&lt;T&gt;</code> и <code class="w3-text-red">std::basic_string_view&lt;T&gt;</code></a>, из которых получаются классы <code class="w3-text-red">std::string</code>, <code class="w3-text-red">std::wstring</code>, <code class="w3-text-red">std::string_view</code> и <code class="w3-text-red">std::wstring_view</code>. Эти классы используют в виде параметра шаблона базовые типы <a href="https://en.cppreference.com/w/cpp/language/types" title="Fundamental types C++"><code class="w3-text-red">char</code> и <code class="w3-text-red">wchar_t</code></a>. Размеры данных типов зависят от ОС и платформы, но чаще всего тип <code class="w3-text-red">char</code> имеет размер равный 8 бит, а тип <code class="w3-text-red">wchar_t</code> <a href="https://en.cppreference.com/w/cpp/language/types" title="Fundamental types C++">на большинстве систем имеет размер 32 бита, а на системе Windows имеет размер 16 бит</a>.</p>
+<h5>std::string и std::wstring</h5>
+<p>Для работы с NTBS используется <code class="w3-text-red">std::string</code>. При этом все методы этого класса могут напрямую корректно работать, поскольку в строках этого типа каждый символ кодируется ровно одним байтом.</p>
+<p>Для работы с NTMBS также используется <code class="w3-text-red">std::string</code>, однако методы не могут корректно адресовать символы по индексу, не могут посчитать правильную длину строки, потому что один символ может быть представлен более чем одним байтом.</p>
+<p>Для работы с NTWS используется <code class="w3-text-red">std::wstring</code>. Все методы этого класса напрямую корректно работают, потому что каждый символ имеет фиксированный размер.</p>
+<p>Стоит обратить внимание, что строки <code class="w3-text-red">std::string</code> спроектированы таким образом, что хранят строку как массив байт, без какой-либо информации о кодировке, поэтому корректно работают в одной, заранее установленной локали.</p>
+<p>Конвертация между этими двумя типами напрямую через конструктор <code class="w3-text-red">std::wstring(string.begin(), string.end())</code> не имеет смысла, поскольку строки значительно не совпадают по байтовому представлению в памяти.</p>
+<p>Естественно, для строк NTMBS функции типа <code class="w3-text-red">std::isspace()</code> или <code class="w3-text-red">std::isalpha()</code> будут работать не корректно.</p>
+<h5>Строковые литералы</h5>
+<p>Для задания <a href="https://en.cppreference.com/w/cpp/language/string_literal" title="String literal C++">строковых литералов</a> NTBS и NTMBS используется нотация <code class="w3-text-red">"literal"</code>. Для задания строковых литералов NTWS используется нотация <code class="w3-text-red">L"literal"</code>. Стоит обратить внимание, что отличить однобайтовую от многобайтовой строки проще всего по наличию non-ASCII символов. Литералы первого вида автоматически определяются как тип <code class="w3-text-red">const char[N]</code>, а литералы второго вида определяются как тип <code class="w3-text-red">const wchar_t[N]</code>.</p>
+<h5>Вывод на экран</h5>
+<p>Стандартно для вывода на экран используется C-style способ <code class="w3-text-red">printf</code>, <code class="w3-text-red">wprintf</code> и C++-style способ <code class="w3-text-red">std::printf</code>, <code class="w3-text-red">std::wprintf</code> и операторы потокового вывода <code class="w3-text-red">std::cout</code> и <code class="w3-text-red">std::wcout</code>. Для вывода строк функциями типа <code class="w3-text-red">printf</code> используется форматная строка, где для подстановки аргумента могут быть использованы спецификаторы <code class="w3-text-red">%s</code> или <code class="w3-text-red">%ls</code>. Существует также спецификатор <code class="w3-text-red">%S</code>, но он не является стандартизированным и реализован преимущественно в компиляторах MSVS.</p>
+<h4>Компиляторы и Unicode</h4>
+<p>Большинство современных компиляторов понимают Unicode строки и в качестве исходников, и в строковых литералах. У многих компиляторов есть соответствующие флаги, которые могут настраивать такое поведение.</p>
+<p><em>Следующие утверждения получены экспериментальным путём.</em></p>
+<p>Для корректного вывода UTF-8 в консоль Windows необходимо установить кодовую страницу в значение <code class="w3-text-red">65001</code>.</p>
+<h5>Windows MinGW и MinGW64</h5>
+<pre><code>MinGW-make version is GNU Make 3.82.90
+MinGW64-make version is GNU Make 4.2.1
+</code></pre>
+
+<ul>
+<li>Позволяет отобразить UTF-8 строку, хранящуюся в типе <code class="w3-text-red">std::string</code> при помощи <code class="w3-text-red">printf</code> или <code class="w3-text-red">std::printf</code>, используя спецификатор <code class="w3-text-red">%s</code>.</li>
+<li>Позволяет отобразить UTF-16 строку, хранящуюся в типе <code class="w3-text-red">std::wstring</code> при помощи <code class="w3-text-red">wprintf</code> или <code class="w3-text-red">std::wprintf</code> используя спецификатор <code class="w3-text-red">%ls</code>.</li>
+<li>Имеет внутренние проблемы, не позволяющие корректно работать операторам <code class="w3-text-red">std::cout</code> и <code class="w3-text-red">std::wcout</code> для отображения символов, отличающихся от ASCII.</li>
+<li>Для компилятора MinGW64 требуется дополнительно установить буфер вывода на консоль для корреткной работы функций <code class="w3-text-red">pritnf</code> и <code class="w3-text-red">std::printf</code>.</li>
+</ul>
+<h5>Windows Clang</h5>
+<pre><code>clang version is 11.0.0
+</code></pre>
+
+<ul>
+<li>Позволяет отобразить UTF-8 строку, хранящуюся в типе <code class="w3-text-red">std::string</code> при помощи <code class="w3-text-red">printf</code> или <code class="w3-text-red">std::printf</code>, используя спецификатор <code class="w3-text-red">%s</code>.</li>
+<li>Позволяет отобразить UTF-16 строку, хранящуюся в типе <code class="w3-text-red">std::wstring</code> при помощи <code class="w3-text-red">wprintf</code>, используя спецификатор <code class="w3-text-red">%s</code>.</li>
+<li>Позволяет отобразить UTF-16 строку, хранящуюся в типе <code class="w3-text-red">std::wstring</code> при помощи <code class="w3-text-red">std::wprintf</code>, используя спецификаторы <code class="w3-text-red">%s</code> или <code class="w3-text-red">%ls</code></li>
+<li>Позволяет отобразить UTF-8 строку при помощи <code class="w3-text-red">std::cout</code>, и UTF-16 строку при помощи <code class="w3-text-red">std::wcout</code>.</li>
+</ul>
+<h5>Windows VS2019</h5>
+<pre><code>msbuild version is 16.6.0.22303
+</code></pre>
+
+<ul>
+<li>Позволяет отобразить UTF-8 строку, хранящуюся в типе <code class="w3-text-red">std::string</code> при помощи <code class="w3-text-red">printf</code> или <code class="w3-text-red">std::printf</code>, используя спецификатор <code class="w3-text-red">%s</code>.</li>
+<li>Позволяет отобразить UTF-8 строку при помощи <code class="w3-text-red">std::cout</code>.</li>
+<li>Не получилось заставить работать <code class="w3-text-red">wprintf</code>, <code class="w3-text-red">std::wprintf</code> или <code class="w3-text-red">std::wcout</code> с широкими строками - по непонятной причине их содержимое считается компилятором как UTF-8.</li>
+</ul>
+<h5>Linux G++ и C++</h5>
+<pre><code>c++ and g++ version is (Debian 8.3.0-6) 8.3.0
+</code></pre>
+
+<ul>
+<li>Позволяет отобразить UTF-8 строку, хранящуюся в типе <code class="w3-text-red">std::string</code> при помощи <code class="w3-text-red">printf</code>, <code class="w3-text-red">std::printf</code>, <code class="w3-text-red">wprintf</code> или <code class="w3-text-red">std::wprintf</code> используя спецификатор <code class="w3-text-red">%s</code>.</li>
+<li>Позволяет отобразить UTF-16 строку, хранящуюся в типе <code class="w3-text-red">std::wstring</code> при помощи <code class="w3-text-red">wprintf</code> или <code class="w3-text-red">std::wprintf</code>, используя спецификатор <code class="w3-text-red">%ls</code>.</li>
+<li>Позволяет отобразить UTF-8 строку с помощью <code class="w3-text-red">std::cout</code>.</li>
+<li>Позволяет отобразить UTF-16 строку с помощью <code class="w3-text-red">std::wcout</code> если установить локаль: <code class="w3-text-red">setlocale(LC_ALL, "en_US.UTF-8");</code>.</li>
+</ul>
+<h3>Ссылки</h3>
+<h4>Информация по теме</h4>
+<ol>
+<li><a href="https://www.joelonsoftware.com/2003/10/08/the-absolute-minimum-every-software-developer-absolutely-positively-must-know-about-unicode-and-character-sets-no-excuses/">Blog post about encodings and charsets</a></li>
+<li><a href="https://www.tecmint.com/set-system-locales-in-linux/">System locales in Linux</a></li>
+<li><a href="https://unicode-table.com/ru/">Unicode symbol table</a></li>
+<li><a href="https://home.unicode.org/">Official unicode website</a></li>
+<li><a href="https://ru.wikibooks.org/wiki/%D0%A8%D1%80%D0%B8%D1%84%D1%82%D1%8B_%D0%B2_Linux">Fonts in Linux</a></li>
+<li><a href="https://habr.com/ru/post/319602/">Unicode - it is very fascinatingly</a></li>
+<li><a href="https://docs.microsoft.com/ru-ru/archive/msdn-magazine/2016/september/c-unicode-encoding-conversions-with-stl-strings-and-win32-apis">Unicode conversion in Windows apps</a></li>
+<li><a href="https://www.codeproject.com/Articles/38242/Reading-UTF-8-with-C-streams">Reading UTF-8 with C streams</a></li>
+<li><a href="https://stackoverflow.com/questions/4406895/what-stdlocale-names-are-available-on-common-windows-compilers/4497266#4497266">Available locale names on Windows</a></li>
+</ol>
+<h4>Использованные источники</h4>
+<ol>
+<li><a href="https://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4" title="Unicode encoding (Wikipedia)">Unicode encoding (Wikipedia)</a></li>
+<li><a href="https://docs.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-international-core-winpe-systemlocale" title="Windows System locale (MSDN)">Windows System locale (MSDN)</a></li>
+<li><a href="https://man7.org/linux/man-pages/man7/locale.7.html" title="Linux system locale">Linux system locale</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Windows_code_page#:~:text=ANSI%20code%20page,-Windows%2D125x%20series&amp;text=ANSI%20code%20pages%20(officially%20called,user%20interface%20on%20Windows%20systems." title="Windows code page (Wikipedia)">Windows code page (Wikipedia)</a></li>
+<li><a href="https://docs.microsoft.com/en-us/windows/win32/intl/code-pages" title="Code pages (MSDN)">Code pages (MSDN)</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Unicode_in_Microsoft_Windows" title="Unicode in Windows (Wikipedia)">Unicode in Windows (Wikipedia)</a></li>
+<li><a href="https://docs.microsoft.com/en-us/windows/win32/intl/unicode" title="Unicode in Windows (MSDN)">Unicode in Windows (MSDN)</a></li>
+<li><a href="https://stackoverflow.com/questions/14109024/how-to-make-unicode-charset-in-cmd-exe-by-default" title="Change default cmd.exe encoding (StackOverflow)">Change default cmd.exe encoding (StackOverflow)</a></li>
+<li><a href="https://docs.microsoft.com/ru-ru/windows/console/setconsoleoutputcp" title="Function SetConsoleOutputCP (MSDN)">Function SetConsoleOutputCP (MSDN)</a></li>
+<li><a href="https://ru.wikipedia.org/wiki/TrueType#:~:text=TrueType%20(%C2%AB%D1%82%D1%80%D1%83%D1%82%D0%B0%D0%B9%D0%BF%C2%BB)%20%E2%80%94,%D0%B8%D0%BC%D0%B5%D1%8E%D1%82%20%D1%80%D0%B0%D1%81%D1%88%D0%B8%D1%80%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%B8%D0%BC%D0%B5%D0%BD%D0%B8%20%C2%ABttf%C2%BB." title="TrueType fonts">TrueType fonts</a></li>
+<li><a href="https://en.wikipedia.org/wiki/NTFS" title="NTFS filesystem (Wikipedia)">NTFS filesystem (Wikipedia)</a></li>
+<li><a href="https://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.admin.nls.doc/doc/c0051307.html" title="Linux default encoding">Linux default encoding</a></li>
+<li><a href="https://stackoverflow.com/a/45809387/3212675" title="Linux locale (StackOverflow)">Linux locale (StackOverflow)</a></li>
+<li><a href="https://www.gnu.org/software/libc/manual/html_node/Locale-Categories.html" title="Locale categories (GNU)">Locale categories (GNU)</a></li>
+<li><a href="https://www.gnu.org/software/libc/manual/html_node/Standard-Locales.html" title="Standard locales (GNU)">Standard locales (GNU)</a></li>
+<li><a href="https://www.tecmint.com/set-system-locales-in-linux/" title="Set linux system locale">Set linux system locale</a></li>
+<li><a href="https://unix.stackexchange.com/questions/38055/utf-8-filenames" title="Linux filename encoding (StackOverflow)">Linux filename encoding (StackOverflow)</a></li>
+<li><a href="https://en.cppreference.com/w/cpp/string/byte" title="Null-terminated byte strings">Null-terminated byte strings</a></li>
+<li><a href="https://en.cppreference.com/w/cpp/string/multibyte" title="Null-terminated multibyte strings">Null-terminated multibyte strings</a></li>
+<li><a href="https://en.cppreference.com/w/cpp/string/wide" title="Null-terminated wide strings">Null-terminated wide strings</a></li>
+<li><a href="https://en.cppreference.com/w/cpp/string" title="Strings library in C++">Strings library in C++</a></li>
+<li><a href="https://en.cppreference.com/w/cpp/language/types" title="Fundamental types C++">Fundamental types C++</a></li>
+<li><a href="https://en.cppreference.com/w/cpp/language/string_literal" title="String literal C++">String literal C++</a></li>
+</ol>    </article>
+    <button onclick="backToTopFunc()" id="backToTop" class="w3-btn w3-circle w3-red w3-large backToTop" title="Go to top">
+      <i class="fa fa-chevron-circle-up w3-xxxlarge"></i>
+    </button>
+    <footer class="w3-row-padding w3-center w3-padding-16">
+      <div class="w3-row">
+        <div class="w3-third">
+          <h3>About</h3>
+        </div>
+        <div class="w3-third">
+          <h3>Recent posts</h3>
+          <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
+          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/notes/NtProtectVirtualMemory.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Описание NtProtectVirtualMemory
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/named_pipe.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Создание именованного пайпа в привилегированном процессе
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/file_ctx.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Передача файлового контекста
+          </span>
+        </div>
+      </div>
+    </li>
+                    </ul>
+        </div>
+        <div class="w3-third">
+          <h3>Tags</h3>
+                                                                                <span class="w3-tag w3-margin-bottom w3-gray">note</span>
+                                                                                          <span class="w3-tag w3-margin-bottom w3-dark-gray">string</span>
+                                                                                          <span class="w3-tag w3-margin-bottom w3-dark-gray">windows</span>
+                                                                        <span class="w3-tag w3-margin-bottom w3-gray">writeup</span>
+                                                                        <span class="w3-tag w3-margin-bottom w3-gray">pipe</span>
+                                                                        <span class="w3-tag w3-margin-bottom w3-gray">winapi</span>
+                                                                        <span class="w3-tag w3-margin-bottom w3-gray">ctf</span>
+                                                                                          <span class="w3-tag w3-margin-bottom w3-dark-gray">unicode</span>
+                                                                                          <span class="w3-tag w3-margin-bottom w3-dark-gray">linux</span>
+                                                                        <span class="w3-tag w3-margin-bottom w3-gray">security</span>
+                                                                        <span class="w3-tag w3-margin-bottom w3-gray">logs</span>
+  
+        </div>
+      </div>
+      <div class="w3-wide w3-opacity w3-tiny w3-text-dark-grey">
+        Generated with <a href="https://github.com/hyde/hyde">the Hyde</a>
+        <br>
+        Powered by <a href="https://www.w3schools.com/w3css/default.asp" target="_blank">w3.css</a>
+      </div>
+    </footer>
+    <script>
+    window.onscroll = function() {scrollFunction()};
+
+    function scrollFunction() {
+      if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+        document.getElementById("backToTop").style.display = "block";
+      } else {
+        document.getElementById("backToTop").style.display = "none";
+      }
+    }
+
+    function backToTopFunc() {
+      document.body.scrollTop = 0; // For Safari
+      document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+    }
+
+    function toogleNavMenu() {
+      var smallMenu = document.getElementById("smallMenu");
+      if (smallMenu.className.indexOf("w3-show") == -1) {
+        smallMenu.className += " w3-show";
+      } else {
+        smallMenu.className = smallMenu.className.replace(" w3-show", "");
+      }
+    }
+
+    function addW3ClassesToImages() {
+      var imgs = document.getElementById("article").getElementsByTagName("img");
+      for (i = 0; i < imgs.length; i++) {
+        console.log(imgs[i].src);
+        imgs[i].className += " w3-card";
+        imgs[i].className += " w3-image";
+      }
+    }
+    </script>
+  </body>
+</html>
