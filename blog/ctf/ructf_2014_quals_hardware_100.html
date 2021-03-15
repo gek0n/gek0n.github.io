@@ -70,7 +70,7 @@ result = parse_dump(dump)
 open('parsed_dump.txt', 'w').write(str(result))
 </code></pre>
 
-<p class="w3-center"><img alt="Parser output" onclick="document.getElementById('modal001').style.display='block'" src="/media/img/blog/ctf/parsed_dump.jpg" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal001" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/ctf/parsed_dump.jpg" style="width:95%;height:auto" /></div></p>
+<p class="w3-center"><img alt="Parser output" src="/media/img/blog/ctf/parsed_dump.jpg" /></p>
 <p>Смотрим на вывод парсера и понимаем, что наше предположение оказалось верно. Причем, видимо для облегчения задачи, количество единиц либо немного больше чем количество нулей, либо намного (в 1.5-2 раза) меньше. Соответственно в первом случае кодируется "0" (на рисунке выделено желтым), во втором "1" (выделено зеленым). Далее замечаем что через определенные промежутки идет очень большое количество нулей (выделено красным). Также легко заметить, что каждый 18 элемент имеет большое количество нулей, а между ними кодируются "0" и "1". Дописываем парсер для переведения сигналов в биты:</p>
 <pre><code class="py">def convert_to_bit(in_dict):
   result = {}
@@ -88,7 +88,7 @@ open('parsed_dump.txt', 'w').write(str(result))
   open('sequense_bits.txt', 'w').write(str(out_dict))
 </code></pre>
 
-<p class="w3-center"><img alt="Parsed bits" onclick="document.getElementById('modal002').style.display='block'" src="/media/img/blog/ctf/sequence_bits.jpg" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal002" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/ctf/sequence_bits.jpg" style="width:95%;height:auto" /></div></p>
+<p class="w3-center"><img alt="Parsed bits" src="/media/img/blog/ctf/sequence_bits.jpg" /></p>
 <p>Снова лезем в интернет, на этот раз мы ищем любую документацию по кодированию сигналов для IR JVC (именно этой фирме принадлежит данная модель, о чем мы узнаем после первого этапа). Находим <a href="http://support.jvc.com/consumer/support/documents/RemoteCodes.pdf">pdf-файл</a> в пару страниц, который подтверждает наши предположения по кодированию и кроме того указывает что пакеты данных кодируются особым образом: сначала идет байт адреса, потом байт данных и в конце 1 бит контроля (именно с ним мы и видим "в паре" огромное количество нулей). Пришло время перевести полученные нолики и единицы в байты. Дописываем парсер, в качестве разделителей берем этот самый последний бит данных.</p>
 <p>Сразу хочу отметить, что несовершенство нашего метода декодирования может слегка искажать некоторые из пакетов, что в конечном итоге не должно помешать успешному декодированию, однако если читатель желает, он может усовершенствовать представленный код.</p>
 <pre><code class="py">def convert_to_byte(in_dict):
@@ -102,8 +102,8 @@ open('encoded_str.txt', 'w').write(encoded_str)
 </code></pre>
 
 <p class="w3-center"><img alt="IR codes" src="/media/img/blog/ctf/encoded_str.jpg" style="min-height:300px" />
-<img alt="IR type" onclick="document.getElementById('modal003').style.display='block'" src="/media/img/blog/ctf/IR2.jpg" style="max-height:300px;cursor:zoom-in;" />
-<img alt="IR type 2" src="/media/img/blog/ctf/IR.jpg" style="min-height:300px" /><div class="w3-modal w3-animate-zoom w3-center" id="modal003" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/ctf/IR2.jpg" style="width:auto" /></div></p>
+<img alt="IR type" src="/media/img/blog/ctf/IR2.jpg" />
+<img alt="IR type 2" src="/media/img/blog/ctf/IR.jpg" style="min-height:300px" /></p>
 <p>Чтобы расшифровать коды долго и упорно ищем разные варианты кодирования сигнала пультами JVC и убеждаемся, что ни один из вариантов не подходит! Хочу отметить, что я пробовал очень много вариантов преобразования последовательностей нулей и единиц в исходном файле, но ни один из них не был похож на кодированный сигнал. В тоже самое время если открыть кодированный сигнал, который мы получили на предыдущем этапе, и выделить некоторые пакеты, то увидим, что они повторяются в коде достаточно часто. Наши коды вполне похожи на настоящие.</p>
 <p>В конце концов мне удалось найти подходящий <a href="http://irremote.psiloc.com/Show.aspx?d=TV&amp;amp;v=JVC&amp;amp;m=RM%20C364%20GY&amp;amp;i=64739">файл</a> именно для этой модели пульта, а их, как оказалось, две модификации! (см. картинки выше). Здесь в XML форме описаны коды для кнопочек. Снова переписываем наш парсер, так чтобы он подставил вместо известных кодов названия кнопок.</p>
 <pre><code>def convert_to_code(in_str):
@@ -160,7 +160,18 @@ open(&quot;decoded_str.txt&quot;, 'w').write(result)
         <div class="w3-third">
           <h3>Recent posts</h3>
           <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
-          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/C%2B%2B_unicode_output.html';">
+          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/swig_through_cmake.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Пример проекта с межязыковым интерфейсом SWIG
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/C%2B%2B_unicode_output.html';">
       <div class="w3-cell-row w3-container">
         <div class="w3-cell">
                 </div>
@@ -182,25 +193,17 @@ open(&quot;decoded_str.txt&quot;, 'w').write(result)
         </div>
       </div>
     </li>
-              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/named_pipe.html';">
-      <div class="w3-cell-row w3-container">
-        <div class="w3-cell">
-                </div>
-        <div style="w3-cell w3-cell-middle w3-container">
-          <span>
-            Создание именованного пайпа в привилегированном процессе
-          </span>
-        </div>
-      </div>
-    </li>
-                    </ul>
+                          </ul>
         </div>
         <div class="w3-third">
           <h3>Tags</h3>
                                                     <span class="w3-tag w3-margin-bottom w3-gray">note</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">cmake</span>
                                             <span class="w3-tag w3-margin-bottom w3-gray">string</span>
                                             <span class="w3-tag w3-margin-bottom w3-gray">windows</span>
                                                               <span class="w3-tag w3-margin-bottom w3-dark-gray">writeup</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">swig</span>
+                                            <span class="w3-tag w3-margin-bottom w3-gray">c++</span>
                                             <span class="w3-tag w3-margin-bottom w3-gray">pipe</span>
                                             <span class="w3-tag w3-margin-bottom w3-gray">winapi</span>
                                                               <span class="w3-tag w3-margin-bottom w3-dark-gray">ctf</span>

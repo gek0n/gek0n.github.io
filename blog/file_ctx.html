@@ -52,7 +52,7 @@
 </blockquote>
 <p>Адрес, указывающий на данный буффер передаётся в <code class="w3-text-red">irp-&gt;AssociatedIrp.SystemBuffer</code>, следовательно может быть получен драйвером. Кажется хорошей идеей использовать данный буфер для указания контекста операции. Однако, если попробовать просто передать в него некоторое значение, то функция вернёт код ошибки.</p>
 <p>Чтобы можно было использовать этот аргумент правильно, требуется открыть в дизассемблере функцию <code class="w3-text-red">NtCreateFile</code>, и посмотреть, что именно происходит с этим буффером, и как с ним работать.</p>
-<p><img alt="Call tree for NtCreateFile" onclick="document.getElementById('modal001').style.display='block'" src="/media/img/blog/file_ctx/IoCheckEaBufferValidity_calltree.png" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal001" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/file_ctx/IoCheckEaBufferValidity_calltree.png" style="width:95%;height:auto" /></div></p>
+<p><img alt="Call tree for NtCreateFile" src="/media/img/blog/file_ctx/IoCheckEaBufferValidity_calltree.png" /></p>
 <p>Как показано на скриншоте, буфер проходит цепочку вызовов, перед тем как быть переданным в драйвер. Функция, которая проверяет консистентность буфера называется <code class="w3-text-red">IoCheckEaBufferValidity</code>. Согласно <a href="https://github.com/markjandrews/wrk-v1.2" title="WRK source code">WRK</a> эта функция проверяет, соответствует ли переданный <code class="w3-text-red">EaBuffer</code> формату структуры <code class="w3-text-red">FILE_FULL_EA_INFORMATION</code>.</p>
 <p><em>Если необходимо, можно ознакомиться с кодом этой функции используя исходники <a href="https://github.com/markjandrews/wrk-v1.2" title="WRK source code">WRK</a></em></p>
 <pre><code class="c">NTSTATUS
@@ -111,7 +111,18 @@ Return Value:
         <div class="w3-third">
           <h3>Recent posts</h3>
           <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
-          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/C%2B%2B_unicode_output.html';">
+          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/swig_through_cmake.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Пример проекта с межязыковым интерфейсом SWIG
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/C%2B%2B_unicode_output.html';">
       <div class="w3-cell-row w3-container">
         <div class="w3-cell">
                 </div>
@@ -133,25 +144,17 @@ Return Value:
         </div>
       </div>
     </li>
-              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/named_pipe.html';">
-      <div class="w3-cell-row w3-container">
-        <div class="w3-cell">
-                </div>
-        <div style="w3-cell w3-cell-middle w3-container">
-          <span>
-            Создание именованного пайпа в привилегированном процессе
-          </span>
-        </div>
-      </div>
-    </li>
-                    </ul>
+                          </ul>
         </div>
         <div class="w3-third">
           <h3>Tags</h3>
                                       <span class="w3-tag w3-margin-bottom w3-gray">note</span>
+                              <span class="w3-tag w3-margin-bottom w3-gray">cmake</span>
                               <span class="w3-tag w3-margin-bottom w3-gray">string</span>
                               <span class="w3-tag w3-margin-bottom w3-gray">windows</span>
                               <span class="w3-tag w3-margin-bottom w3-gray">writeup</span>
+                              <span class="w3-tag w3-margin-bottom w3-gray">swig</span>
+                              <span class="w3-tag w3-margin-bottom w3-gray">c++</span>
                               <span class="w3-tag w3-margin-bottom w3-gray">pipe</span>
                                                 <span class="w3-tag w3-margin-bottom w3-dark-gray">winapi</span>
                               <span class="w3-tag w3-margin-bottom w3-gray">ctf</span>

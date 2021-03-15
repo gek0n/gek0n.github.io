@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Blog| Пример проекта с межязыковым интерфейсом SWIG</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/media/css/style.css">
+    <link rel="stylesheet" href="/media/css/w3.css">
+    <link rel="stylesheet" href="/media/css/blog/article.css">
+    <link rel="stylesheet" href="/media/css/font-awesome.min.css">
+    <link href="http://fonts.googleapis.com/css?family=Anton"
+            rel="stylesheet" type="text/css">
+
+    <!-- Turn on code highlighting -->
+    <link rel="stylesheet" href="/media/css/highlight/hybrid.css">
+    <script src="/media/js/highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    <meta name="author" content="Загурский Михаил" />
+    <meta name="description" content="Статья описывает использование SWIG в C++ проектах, написанных с использованием CMake" />
+    <meta name="generator" content="Hyde 0.8.9" />
+    <meta name="keywords" content="swig, cmake, c++" />
+  </head>
+  <body onload="addW3ClassesToImages();">
+    <nav id="main" class="w3-bar w3-black w3-top">
+        <a href="/index.html" class="w3-bar-item w3-button ">Главная</a>
+        <a href="/blog/listing.html" class="w3-bar-item w3-button  w3-hide-small ">Блог</a>
+        <a href="/about.html" class="w3-bar-item w3-button  w3-hide-small ">Резюме</a>
+        <a href="#" class="w3-bar-item w3-button w3-hide-large w3-hide-medium w3-right" title="Страницы" onClick="toogleNavMenu()">Страницы</a>
+    <div id="smallMenu" class="w3-bar w3-black w3-bar-block w3-hide">
+            <a href="/blog/listing.html" class="w3-bar-item w3-button">Блог</a>
+            <a href="/about.html" class="w3-bar-item w3-button">Резюме</a>
+          </div>
+  </nav>
+    <header class="w3-container w3-center w3-padding-64 w3-xxlarge w3-mobile">
+      Пример проекта с межязыковым интерфейсом SWIG
+    </header>
+    
+    <article class="w3-content w3-justify w3-container w3-col m11 l10" id="article">
+      <p>Иногда, чтобы не дублировать функциональность некоторых библиотек, переписывая их на других языках, и чтобы не тратить время на написание обёрток для конкретного языка вручную, используют <a href="http://www.swig.org" title="SWIG технология">технологию SWIG.</a></p>
+<p>Эта технология позволяет описать интерфейс требуемой С/C++ библиотеки на универсальном языке SWIG. Получившийся интерфейсный файл или набор файлов передаются SWIG утилите, которая автоматически преобразует их в библиотеки любого указанного <a href="http://www.swig.org/compat.html" title="Совместимость SWIG">поддерживаемого языка.</a></p>
+<p>Удобства использованию добавляет тот факт, что можно использовать SWIG <a href="https://cmake.org/cmake/help/latest/module/UseSWIG.html" title="Использование SWIG в CMake">встраивая его в систему сборки CMake.</a></p>
+<h3>Пример использования</h3>
+<p>В интернете есть некоторое количество <a href="https://github.com/Mizux/cmake-swig/" title="Пример проекта CMake-SWIG">проектов-примеров</a>, сделанных с использованием связки SWIG и CMake, но они не затрагивают написание шаблонных методов и классов, а также в них очень много лишнего, что мешает выделить минимальный набор действий, необходимый для использования этой технологии.</p>
+<h4>Шаблонный проект</h4>
+<p>За основу возьмём <a href="https://github.com/gek0n/SwigPythonLibraryTest" title="Шаблонный проект">простой шаблонный проект</a>, состоящий из библиотеки и консольного приложения, использующего эту библиотеку. В библиотеке <a href="https://github.com/gek0n/SwigPythonLibraryTest/commit/5fe5855c509280b0f9ce94200aa41299348b62dc" title="Первая версия без SWIG">есть</a> несколько классов и функций. Для удобства иллюстрирования, в каждой функции, конструкторе и деструкторе есть вывод строки на консоль, чтобы отследить использование кода при портировании в другой язык.</p>
+<div class="w3-container w3-padding w3-red">Library.hpp</div><pre style="margin-top:0px;"><code class="c++">#pragma once
+#include &lt;iostream&gt;
+#include &lt;sstream&gt;
+#include &lt;string&gt;
+#include &lt;typeinfo&gt;
+
+namespace LibraryNamespace {
+
+void func1();
+void func2(int32_t arg);
+void func3(int32_t arg1, double arg2, std::string arg3);
+
+int32_t func4();
+double func5();
+std::string func6();
+
+struct Struct1 {
+  int32_t field1;
+  double field2;
+  std::string field3;
+
+  Struct1() {
+    std::cout &lt;&lt; &quot;&lt;Struct1 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Constructing&quot; &lt;&lt; std::endl;
+  }
+  Struct1(Struct1 &amp;arg)
+      : field1(arg.field1), field2(arg.field2), field3(arg.field3) {
+    std::cout &lt;&lt; &quot;&lt;Struct1 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Copy constructing&quot; &lt;&lt; std::endl;
+  }
+  ~Struct1() {
+    std::cout &lt;&lt; &quot;&lt;Struct1 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Destroying&quot; &lt;&lt; std::endl;
+  }
+
+  std::string toString() const;
+};
+
+class Class1 {
+public:
+  Class1() { std::cout &lt;&lt; &quot;&lt;Class1 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Constructing&quot; &lt;&lt; std::endl; }
+  virtual ~Class1() {
+    std::cout &lt;&lt; &quot;&lt;Class1 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Destroying&quot; &lt;&lt; std::endl;
+  }
+  virtual std::string toString() const = 0;
+
+protected:
+  std::string field1;
+};
+
+class Class2 : public Class1 {
+public:
+  Class2() = delete;
+  explicit Class2(Struct1 arg);
+  Class2(int32_t arg1, double arg2, std::string arg3);
+  ~Class2() override {
+    std::cout &lt;&lt; &quot;&lt;Class2 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Destroying&quot; &lt;&lt; std::endl;
+  }
+  std::string toString() const override;
+
+private:
+  Struct1 field2;
+};
+} // namespace LibraryNamespace
+
+</code></pre>
+
+<div class="w3-container w3-padding w3-red">Library.cpp</div><pre style="margin-top:0px;"><code class="c++">#include &quot;Library.hpp&quot;
+
+namespace LibraryNamespace {
+
+void func1() { std::cout &lt;&lt; &quot;&lt;func1&gt;&quot; &lt;&lt; std::endl; }
+
+void func2(int32_t arg) {
+  std::cout &lt;&lt; &quot;&lt;func2&gt; Argument: &quot; &lt;&lt; arg &lt;&lt; std::endl;
+}
+
+void func3(int32_t arg1, double arg2, std::string arg3) {
+  std::cout &lt;&lt; &quot;&lt;func3&gt; Argument 1: &quot; &lt;&lt; arg1 &lt;&lt; &quot; Argument 2: &quot; &lt;&lt; arg2
+            &lt;&lt; &quot; Argument 3: &quot; &lt;&lt; arg3 &lt;&lt; std::endl;
+}
+
+int32_t func4() {
+  std::cout &lt;&lt; &quot;&lt;func4&gt;&quot; &lt;&lt; std::endl;
+  return 47;
+}
+
+double func5() {
+  std::cout &lt;&lt; &quot;&lt;func5&gt;&quot; &lt;&lt; std::endl;
+  return -0.12;
+}
+std::string func6() {
+  std::cout &lt;&lt; &quot;&lt;func6&gt;&quot; &lt;&lt; std::endl;
+  return &quot;value from func6&quot;;
+}
+
+std::string Struct1::toString() const {
+  std::stringstream ss;
+  ss &lt;&lt; &quot;&lt;Struct1 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Field 1: &quot; &lt;&lt; field1;
+  ss &lt;&lt; &quot; Field 2: &quot; &lt;&lt; field2;
+  ss &lt;&lt; &quot; Field 3: &quot; &lt;&lt; field3;
+  return ss.str();
+}
+
+std::string Class1::toString() const {
+  std::stringstream ss;
+  ss &lt;&lt; &quot;&lt;Class1 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Field 1: &quot; &lt;&lt; field1;
+  return ss.str();
+}
+
+Class2::Class2(Struct1 arg) {
+  std::cout &lt;&lt; &quot;&lt;Class2 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Constructing&quot; &lt;&lt; std::endl;
+  field2 = arg;
+}
+
+Class2::Class2(int32_t arg1, double arg2, std::string arg3) {
+  std::cout &lt;&lt; &quot;&lt;Class2 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Constructing&quot; &lt;&lt; std::endl;
+  field2.field1 = arg1;
+  field2.field2 = arg2;
+  field2.field3 = arg3;
+}
+
+std::string Class2::toString() const {
+  std::stringstream ss;
+  ss &lt;&lt; &quot;&lt;Class2 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Field 1: &quot; &lt;&lt; field1;
+  ss &lt;&lt; &quot; Field 2: &quot; &lt;&lt; field2.toString();
+  return ss.str();
+}
+
+} // namespace LibraryNamespace
+
+</code></pre>
+
+<p>В консольном приложении просто задействуем все функции, структуры и классы, чтобы было с чем сравнивать.</p>
+<div class="w3-container w3-padding w3-red">Application.cpp</div><pre style="margin-top:0px;"><code class="c++">#include &lt;Library/Library.hpp&gt;
+#include &lt;iostream&gt;
+#include &lt;memory&gt;
+
+using namespace LibraryNamespace;
+
+int32_t main(int32_t argc, char **argv) {
+  std::cout &lt;&lt; &quot;[+] Application started&quot; &lt;&lt; std::endl;
+  func1();
+  func2(0);
+  func3(1, 2.123, &quot;qwerty&quot;);
+
+  std::cout &lt;&lt; &quot;Result of func4: &quot; &lt;&lt; func4() &lt;&lt; std::endl;
+  std::cout &lt;&lt; &quot;Result of func5: &quot; &lt;&lt; func5() &lt;&lt; std::endl;
+  std::cout &lt;&lt; &quot;Result of func6: &quot; &lt;&lt; func6() &lt;&lt; std::endl;
+  Struct1 inst1;
+  std::cout &lt;&lt; inst1.toString() &lt;&lt; std::endl;
+  auto inst2 = std::make_shared&lt;Class2&gt;(inst1);
+  std::cout &lt;&lt; inst2-&gt;toString() &lt;&lt; std::endl;
+  auto inst3 = std::make_shared&lt;Class2&gt;(2, 123.0, &quot;&quot;);
+  std::cout &lt;&lt; inst3-&gt;toString() &lt;&lt; std::endl;
+  std::cout &lt;&lt; &quot;[+] Application ended&quot; &lt;&lt; std::endl;
+  return 0;
+}
+
+</code></pre>
+
+<h4>Добавление SWIG</h4>
+<p>Удобнее всего добавить в проект папку с названием <code class="w3-text-red">Swig</code> и в неё сложить подпапки для каждого языка, в который будем импортировать библиотеку. Для корневого CMake файла достаточно следующего содержимого:</p>
+<div class="w3-container w3-padding w3-red">CMakeLists.txt</div><pre style="margin-top:0px;"><code class="cmake">find_package(SWIG REQUIRED)
+include(UseSWIG)
+
+add_subdirectory(Python)
+</code></pre>
+
+<p>Если предполагается в один модуль спрятать все библиотеки, представленные в проекте, то целесообразнее поместить интерфейсный файл в корневую папку <code class="w3-text-red">Swig</code>, потому что этот файл будет общий для всех целевых языков. Если же предполагается добавлять несколько модулей, по одному для каждой библиотеки, то лучше поместить интерфейсный файл в соответствующей подпапке.</p>
+<p>Для упрощения, используем первый вариант.</p>
+<div class="w3-container w3-padding w3-red">InterfaceFilename.i</div><pre style="margin-top:0px;"><code class="swig">%module SwigModuleName
+
+%begin %{
+#define SWIG_PYTHON_INTERPRETER_NO_DEBUG
+%}
+
+%include &quot;stdint.i&quot;
+%include &quot;std_string.i&quot;
+
+%{
+#include &lt;Library/Library.hpp&gt;
+%}
+
+%include &quot;../Library/Library.hpp&quot;
+
+</code></pre>
+
+<p>В данном случае, мы объявляем стандартные интерфейсные файлы и напрямую включаем заголовочный файл, так как объявленные функции <a href="http://swig.org/tutorial.html" title="Руководство по использованию SWIG">легко транслируются автоматически.</a></p>
+<p>Для теста напишем <code class="w3-text-red">python</code> скрипт, который повторяет работу консольного приложения (заодно можно сравнить синтаксис вызова и увидеть автоматическую трансляцию типов)</p>
+<div class="w3-container w3-padding w3-red">test.py</div><pre style="margin-top:0px;"><code class="py">import SwigModuleName as module
+
+print(f'Module has {dir(module)}')
+print(f'Struct1 has {dir(module.Struct1)}')
+print(f'Class1 has {dir(module.Class1)}')
+print(f'Class2 has {dir(module.Class2)}')
+print(&quot;[+] Application started&quot;)
+
+module.func1()
+module.func2(1)
+module.func3(1, 2.123, &quot;qwerty&quot;)
+print(f'Result of func4: {module.func4()}')
+print(f'Result of func5: {module.func5()}')
+print(f'Result of func6: {module.func6()}')
+
+inst1 = module.Struct1()
+print(inst1.toString())
+
+inst2 = module.Class2(inst1)
+print(inst2.toString())
+inst3 = module.Class2(2, 123.0, &quot;&quot;)
+print(inst3.toString())
+
+print(&quot;[+] Application ended&quot;)
+
+try:
+    c1 = module.Class1()
+except AttributeError as e:
+    print(f'Error creating Class1: {e}')
+
+</code></pre>
+
+<h4>Template классы и функции</h4>
+<p>Если мы экспортируем  в модуль библиотеку, имеющую шаблонный API, то у шаблонов не будет специализации по-умолчанию.</p>
+<div class="w3-container w3-padding w3-red">Library.hpp</div><pre style="margin-top:0px;"><code class="c++">//...
+template &lt;typename T1&gt; void func7(T1 arg) {
+  std::cout &lt;&lt; &quot;&lt;func7&gt; Template argument&lt;&quot; &lt;&lt; typeid(T1).name() &lt;&lt; &quot;&gt;: &quot; &lt;&lt; arg
+            &lt;&lt; std::endl;
+}
+
+template &lt;typename T1, typename T2&gt; class Class3 {
+public:
+  Class3(T1 arg1, T2 arg2) : field1(arg1), field2(arg2) {
+    std::cout &lt;&lt; &quot;&lt;Class3 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Constructing&quot; &lt;&lt; std::endl;
+  }
+
+  ~Class3() { std::cout &lt;&lt; &quot;&lt;Class3 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Destroying&quot; &lt;&lt; std::endl; }
+
+  std::string toString() const {
+    std::stringstream ss;
+    ss &lt;&lt; &quot;&lt;Class3 &quot; &lt;&lt; this &lt;&lt; &quot;&gt; Template 1 argument&lt;&quot; &lt;&lt; typeid(T1).name()
+       &lt;&lt; &quot;&gt;: &quot; &lt;&lt; field1;
+    ss &lt;&lt; &quot; Template 2 argument&lt;&quot; &lt;&lt; typeid(T2).name() &lt;&lt; &quot;&gt;: &quot; &lt;&lt; field2;
+    return ss.str();
+  }
+
+private:
+  T1 field1;
+  T2 field2;
+};
+//...
+</code></pre>
+
+<p>Добавить специализацию можно в интерфейсном файле:</p>
+<div class="w3-container w3-padding w3-red">interfaceFilename.i</div><pre style="margin-top:0px;"><code class="swig">%template(func7) LibraryNamespace::func7&lt;char&gt;;
+%template(func7) LibraryNamespace::func7&lt;std::string&gt;;
+%template(func7) LibraryNamespace::func7&lt;int&gt;;
+%template(func7) LibraryNamespace::func7&lt;double&gt;;
+
+%template(Class3_i_d) LibraryNamespace::Class3&lt;int, double&gt;;
+%template(Class3_i_s) LibraryNamespace::Class3&lt;int, std::string&gt;;
+%template(Class3_c_i) LibraryNamespace::Class3&lt;char, int&gt;;
+%template(Class3_s_s) LibraryNamespace::Class3&lt;std::string, std::string&gt;;
+
+</code></pre>
+
+<p>Как видно из примера выше, если целевой язык поддерживает перегрузку имён, то имя сущности можно не менять при специализации.</p>
+<p>Так будет выглядеть вызов специализированных функций из целевого языка:</p>
+<div class="w3-container w3-padding w3-red">test.py</div><pre style="margin-top:0px;"><code class="py">#...
+module.func7('c')
+module.func7(&quot;qwerty&quot;)
+module.func7(1)
+module.func7(2.0)
+
+#...
+inst4 = module.Class3_i_d(2, 123.0)
+print(inst4.toString())
+inst5 = module.Class3_i_s(2, &quot;&quot;)
+print(inst5.toString())
+inst6 = module.Class3_c_i('q', -1)
+print(inst6.toString())
+inst7 = module.Class3_s_s(&quot;string1&quot;, &quot;string2&quot;)
+print(inst7.toString())
+#...
+</code></pre>
+
+<hr />
+<p>Пример проекта CMake+SWIG представлен в <a href="https://github.com/gek0n/SwigPythonLibraryTest">моём репозитории на github</a>. Имена всех файлов, проектов и модулей "говорящие", чтобы можно было легко понять (в отличие от проектов-примеров по ссылкам ниже) где какое имя нужно подставить.</p>
+<h3>Ссылки</h3>
+<h4>Информация по теме</h4>
+<ol>
+<li><a href="https://cmake.org/cmake/help/latest/module/UseSWIG.html">Использование SWIG в CMake</a></li>
+<li><a href="http://swig.org/tutorial.html">Краткое руководство по SWIG</a></li>
+<li><a href="http://swig.org/Doc4.0/Contents.html">Руководство пользователя SWIG</a></li>
+</ol>
+<h4>Использованные источники</h4>
+<ol>
+<li><a href="http://www.swig.org" title="SWIG технология">SWIG технология</a></li>
+<li><a href="http://www.swig.org/compat.html" title="Совместимость SWIG">Совместимость SWIG</a></li>
+<li><a href="https://cmake.org/cmake/help/latest/module/UseSWIG.html" title="Использование SWIG в CMake">Использование SWIG в CMake</a></li>
+<li><a href="https://github.com/Mizux/cmake-swig/" title="Пример проекта CMake-SWIG">Пример проекта CMake-SWIG</a></li>
+<li><a href="https://github.com/gek0n/SwigPythonLibraryTest" title="Шаблонный проект">Шаблонный проект</a></li>
+<li><a href="https://github.com/gek0n/SwigPythonLibraryTest/commit/5fe5855c509280b0f9ce94200aa41299348b62dc" title="Первая версия без SWIG">Первая версия без SWIG</a></li>
+<li><a href="http://swig.org/tutorial.html" title="Руководство по использованию SWIG">Руководство по использованию SWIG</a></li>
+</ol>    </article>
+    <button onclick="backToTopFunc()" id="backToTop" class="w3-btn w3-circle w3-red w3-large backToTop" title="Go to top">
+      <i class="fa fa-chevron-circle-up w3-xxxlarge"></i>
+    </button>
+    <footer class="w3-row-padding w3-center w3-padding-16">
+      <div class="w3-row">
+        <div class="w3-third">
+          <h3>About</h3>
+        </div>
+        <div class="w3-third">
+          <h3>Recent posts</h3>
+          <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
+          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/C%2B%2B_unicode_output.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Отображение Unicode строк в C++
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/notes/NtProtectVirtualMemory.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Описание NtProtectVirtualMemory
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/named_pipe.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Создание именованного пайпа в привилегированном процессе
+          </span>
+        </div>
+      </div>
+    </li>
+                          </ul>
+        </div>
+        <div class="w3-third">
+          <h3>Tags</h3>
+                                                                  <span class="w3-tag w3-margin-bottom w3-gray">note</span>
+                                                                            <span class="w3-tag w3-margin-bottom w3-dark-gray">cmake</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">string</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">windows</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">writeup</span>
+                                                                            <span class="w3-tag w3-margin-bottom w3-dark-gray">swig</span>
+                                                                            <span class="w3-tag w3-margin-bottom w3-dark-gray">c++</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">pipe</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">winapi</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">ctf</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">unicode</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">linux</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">security</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">logs</span>
+  
+        </div>
+      </div>
+      <div class="w3-wide w3-opacity w3-tiny w3-text-dark-grey">
+        Generated with <a href="https://github.com/hyde/hyde">the Hyde</a>
+        <br>
+        Powered by <a href="https://www.w3schools.com/w3css/default.asp" target="_blank">w3.css</a>
+      </div>
+    </footer>
+    <script>
+    window.onscroll = function() {scrollFunction()};
+
+    function scrollFunction() {
+      if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+        document.getElementById("backToTop").style.display = "block";
+      } else {
+        document.getElementById("backToTop").style.display = "none";
+      }
+    }
+
+    function backToTopFunc() {
+      document.body.scrollTop = 0; // For Safari
+      document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+    }
+
+    function toogleNavMenu() {
+      var smallMenu = document.getElementById("smallMenu");
+      if (smallMenu.className.indexOf("w3-show") == -1) {
+        smallMenu.className += " w3-show";
+      } else {
+        smallMenu.className = smallMenu.className.replace(" w3-show", "");
+      }
+    }
+
+    function addW3ClassesToImages() {
+      var imgs = document.getElementById("article").getElementsByTagName("img");
+      for (i = 0; i < imgs.length; i++) {
+        console.log(imgs[i].src);
+        imgs[i].className += " w3-card";
+        imgs[i].className += " w3-image";
+      }
+    }
+    </script>
+  </body>
+</html>

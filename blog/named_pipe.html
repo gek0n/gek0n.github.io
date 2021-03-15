@@ -231,16 +231,16 @@ pipe = CreateNamedPipeA(
 <p>Данный код позволяет создать именованный пайп, присвоив ему дескриптор безопасности, который позволяет осуществлять операции чтения и записи любому авторизованному пользователю в системе.</p>
 <h3>Проверка на практике</h3>
 <p>Получим значения дескрипторов по умолчанию для обычного пользователя (первый скриншот) и для администратора (второй скриншот).</p>
-<p><img alt="Default security descriptor for user" onclick="document.getElementById('modal001').style.display='block'" src="/media/img/blog/named_pipe/user_default_security_descriptor.png" style="cursor:zoom-in;" />
-<img alt="Default security descriptor for admin" src="/media/img/blog/named_pipe/admin_default_security_descriptor.png" /><div class="w3-modal w3-animate-zoom w3-center" id="modal001" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/named_pipe/user_default_security_descriptor.png" style="width:95%;height:auto" /></div></p>
+<p><img alt="Default security descriptor for user" src="/media/img/blog/named_pipe/user_default_security_descriptor.png" />
+<img alt="Default security descriptor for admin" src="/media/img/blog/named_pipe/admin_default_security_descriptor.png" /></p>
 <p>Теперь попробуем запустить файл <code class="w3-text-red">Server.exe</code> (сверху) от имени пользователя, и от его же имени <code class="w3-text-red">Client.exe</code> (снизу).</p>
-<p class="w3-center"><img alt="Run server as user and client as user" onclick="document.getElementById('modal002').style.display='block'" src="/media/img/blog/named_pipe/execute_user_user.png" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal002" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/named_pipe/execute_user_user.png" style="width:95%;height:auto" /></div></p>
+<p class="w3-center"><img alt="Run server as user and client as user" src="/media/img/blog/named_pipe/execute_user_user.png" /></p>
 <p>Как видно из скриншота, соединение между сервером и клиентом произошло без ошибок. Это ожидаемое поведение, так как при создании именованного пайпа было установлено значение по умолчанию для дескриптора безопасности, позволяющее процессам, запущенным от имени того же пользователя иметь доступ на чтение и запись к пайпу.</p>
 <p>Теперь запустим файл <code class="w3-text-red">Server.exe</code> (сверху) от имени администратора, а файл <code class="w3-text-red">Client.exe</code> (снизу) по прежнему от имени пользователя.</p>
-<p class="w3-center"><img alt="Run server as admin and client as user" onclick="document.getElementById('modal003').style.display='block'" src="/media/img/blog/named_pipe/execute_admin_user.png" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal003" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/named_pipe/execute_admin_user.png" style="width:95%;height:auto" /></div></p>
+<p class="w3-center"><img alt="Run server as admin and client as user" src="/media/img/blog/named_pipe/execute_admin_user.png" /></p>
 <p>В данном случае, сервер остаётся ожидать подключения, в то время как клиент получает ошибку с кодом <code class="w3-text-red">0x5</code> (<a href="https://msdn.microsoft.com/ru-ru/library/windows/desktop/ms681382%28v=vs.85%29.aspx?f=255&amp;MSPPError=-2147217396" title="System Error Codes">ERROR_ACCESS_DENIED</a>), возникшую в процессе подключения. Происходит так потому, что дескриптор безопасности по умолчанию не позволяет пользователю открывать на запись именованный пайп, созданный администратором.</p>
 <p>Если при создании именованного пайпа вместо значений по умолчанию задать определённый дескриптор безопасности, то можно позволить определённым пользователям совершать указанные действия над объектом пайпа.</p>
-<p class="w3-center"><img alt="Run configured server as admin and client as user" onclick="document.getElementById('modal004').style.display='block'" src="/media/img/blog/named_pipe/execute_configured_admin_user.png" style="cursor:zoom-in;" /><div class="w3-modal w3-animate-zoom w3-center" id="modal004" onclick="this.style.display='none'"><img class="w3-modal-content w3-center" src="/media/img/blog/named_pipe/execute_configured_admin_user.png" style="width:95%;height:auto" /></div></p>
+<p class="w3-center"><img alt="Run configured server as admin and client as user" src="/media/img/blog/named_pipe/execute_configured_admin_user.png" /></p>
 <p>Скриншот демонстрирует, что правильно настроенный сервер <code class="w3-text-red">ConfiguredServer.exe</code>, запущенный из под администратора, создаёт именованный пайп, к которому может подключиться <code class="w3-text-red">Client.exe</code>, запущенный из под пользователя.</p>
 <p>Все примеры кода представлены в <a href="https://github.com/gek0n/NamedPipeDemo">моём репозитории на github</a>.</p>
 <h3>Ссылки</h3>
@@ -271,7 +271,18 @@ pipe = CreateNamedPipeA(
         <div class="w3-third">
           <h3>Recent posts</h3>
           <ul id="articles" class="w3-ul w3-hoverable" style="max-width:400px;margin:auto;">
-          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/C%2B%2B_unicode_output.html';">
+          <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/swig_through_cmake.html';">
+      <div class="w3-cell-row w3-container">
+        <div class="w3-cell">
+                </div>
+        <div style="w3-cell w3-cell-middle w3-container">
+          <span>
+            Пример проекта с межязыковым интерфейсом SWIG
+          </span>
+        </div>
+      </div>
+    </li>
+              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/C%2B%2B_unicode_output.html';">
       <div class="w3-cell-row w3-container">
         <div class="w3-cell">
                 </div>
@@ -293,25 +304,17 @@ pipe = CreateNamedPipeA(
         </div>
       </div>
     </li>
-              <li class="w3-hover-grey w3-card-4" onclick="location.href='/blog/file_ctx.html';">
-      <div class="w3-cell-row w3-container">
-        <div class="w3-cell">
-                </div>
-        <div style="w3-cell w3-cell-middle w3-container">
-          <span>
-            Передача файлового контекста
-          </span>
-        </div>
-      </div>
-    </li>
-                    </ul>
+                          </ul>
         </div>
         <div class="w3-third">
           <h3>Tags</h3>
                                                                   <span class="w3-tag w3-margin-bottom w3-gray">note</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">cmake</span>
                                                           <span class="w3-tag w3-margin-bottom w3-gray">string</span>
                                                                             <span class="w3-tag w3-margin-bottom w3-dark-gray">windows</span>
                                                           <span class="w3-tag w3-margin-bottom w3-gray">writeup</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">swig</span>
+                                                          <span class="w3-tag w3-margin-bottom w3-gray">c++</span>
                                                                             <span class="w3-tag w3-margin-bottom w3-dark-gray">pipe</span>
                                                           <span class="w3-tag w3-margin-bottom w3-gray">winapi</span>
                                                           <span class="w3-tag w3-margin-bottom w3-gray">ctf</span>
