@@ -1,0 +1,347 @@
+---
+title: Пример проекта с межъязыковым интерфейсом SWIG
+description: Статья описывает использование SWIG в C++ проектах, написанных с использованием CMake
+keywords: swig, cmake, c++
+tags:
+    - cmake
+    - swig
+    - c++
+date: 07.03.2021
+---
+Иногда, чтобы не дублировать функциональность некоторых библиотек, переписывая их на других языках, и чтобы не тратить время на написание обёрток для конкретного языка вручную, используют [технологию SWIG.][0]
+
+Эта технология позволяет описать интерфейс требуемой С/C++ библиотеки на универсальном языке SWIG. Получившийся интерфейсный файл или набор файлов передаются SWIG утилите, которая автоматически преобразует их в библиотеки любого указанного [поддерживаемого языка.][1]
+
+Удобства использованию добавляет тот факт, что можно использовать SWIG [встраивая его в систему сборки CMake.][2]
+
+### Пример использования
+
+В интернете есть некоторое количество [проектов-примеров][3], сделанных с использованием связки SWIG и CMake, но они не затрагивают написание шаблонных методов и классов, а также в них очень много лишнего, что мешает выделить минимальный набор действий, необходимый для использования этой технологии.
+
+#### Шаблонный проект
+
+За основу возьмём [простой шаблонный проект][4], состоящий из библиотеки и консольного приложения, использующего эту библиотеку. В библиотеке [есть][5] несколько классов и функций. Для удобства иллюстрирования, в каждой функции, конструкторе и деструкторе есть вывод строки на консоль, чтобы отследить использование кода при портировании в другой язык.
+
+```c++ Library.hpp
+#pragma once
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <typeinfo>
+
+namespace LibraryNamespace {
+
+void func1();
+void func2(int32_t arg);
+void func3(int32_t arg1, double arg2, std::string arg3);
+
+int32_t func4();
+double func5();
+std::string func6();
+
+struct Struct1 {
+  int32_t field1;
+  double field2;
+  std::string field3;
+
+  Struct1() {
+    std::cout << "<Struct1 " << this << "> Constructing" << std::endl;
+  }
+  Struct1(Struct1 &arg)
+      : field1(arg.field1), field2(arg.field2), field3(arg.field3) {
+    std::cout << "<Struct1 " << this << "> Copy constructing" << std::endl;
+  }
+  ~Struct1() {
+    std::cout << "<Struct1 " << this << "> Destroying" << std::endl;
+  }
+
+  std::string toString() const;
+};
+
+class Class1 {
+public:
+  Class1() { std::cout << "<Class1 " << this << "> Constructing" << std::endl; }
+  virtual ~Class1() {
+    std::cout << "<Class1 " << this << "> Destroying" << std::endl;
+  }
+  virtual std::string toString() const = 0;
+
+protected:
+  std::string field1;
+};
+
+class Class2 : public Class1 {
+public:
+  Class2() = delete;
+  explicit Class2(Struct1 arg);
+  Class2(int32_t arg1, double arg2, std::string arg3);
+  ~Class2() override {
+    std::cout << "<Class2 " << this << "> Destroying" << std::endl;
+  }
+  std::string toString() const override;
+
+private:
+  Struct1 field2;
+};
+} // namespace LibraryNamespace
+
+```
+
+```c++ Library.cpp
+#include "Library.hpp"
+
+namespace LibraryNamespace {
+
+void func1() { std::cout << "<func1>" << std::endl; }
+
+void func2(int32_t arg) {
+  std::cout << "<func2> Argument: " << arg << std::endl;
+}
+
+void func3(int32_t arg1, double arg2, std::string arg3) {
+  std::cout << "<func3> Argument 1: " << arg1 << " Argument 2: " << arg2
+            << " Argument 3: " << arg3 << std::endl;
+}
+
+int32_t func4() {
+  std::cout << "<func4>" << std::endl;
+  return 47;
+}
+
+double func5() {
+  std::cout << "<func5>" << std::endl;
+  return -0.12;
+}
+std::string func6() {
+  std::cout << "<func6>" << std::endl;
+  return "value from func6";
+}
+
+std::string Struct1::toString() const {
+  std::stringstream ss;
+  ss << "<Struct1 " << this << "> Field 1: " << field1;
+  ss << " Field 2: " << field2;
+  ss << " Field 3: " << field3;
+  return ss.str();
+}
+
+std::string Class1::toString() const {
+  std::stringstream ss;
+  ss << "<Class1 " << this << "> Field 1: " << field1;
+  return ss.str();
+}
+
+Class2::Class2(Struct1 arg) {
+  std::cout << "<Class2 " << this << "> Constructing" << std::endl;
+  field2 = arg;
+}
+
+Class2::Class2(int32_t arg1, double arg2, std::string arg3) {
+  std::cout << "<Class2 " << this << "> Constructing" << std::endl;
+  field2.field1 = arg1;
+  field2.field2 = arg2;
+  field2.field3 = arg3;
+}
+
+std::string Class2::toString() const {
+  std::stringstream ss;
+  ss << "<Class2 " << this << "> Field 1: " << field1;
+  ss << " Field 2: " << field2.toString();
+  return ss.str();
+}
+
+} // namespace LibraryNamespace
+
+```
+
+В консольном приложении просто задействуем все функции, структуры и классы, чтобы было с чем сравнивать.
+
+```c++ Application.cpp
+#include <Library/Library.hpp>
+#include <iostream>
+#include <memory>
+
+using namespace LibraryNamespace;
+
+int32_t main(int32_t argc, char **argv) {
+  std::cout << "[+] Application started" << std::endl;
+  func1();
+  func2(0);
+  func3(1, 2.123, "qwerty");
+
+  std::cout << "Result of func4: " << func4() << std::endl;
+  std::cout << "Result of func5: " << func5() << std::endl;
+  std::cout << "Result of func6: " << func6() << std::endl;
+  Struct1 inst1;
+  std::cout << inst1.toString() << std::endl;
+  auto inst2 = std::make_shared<Class2>(inst1);
+  std::cout << inst2->toString() << std::endl;
+  auto inst3 = std::make_shared<Class2>(2, 123.0, "");
+  std::cout << inst3->toString() << std::endl;
+  std::cout << "[+] Application ended" << std::endl;
+  return 0;
+}
+
+```
+
+#### Добавление SWIG
+
+Удобнее всего добавить в проект папку с названием `Swig` и в неё сложить подпапки для каждого языка, в который будем импортировать библиотеку. Для корневого CMake файла достаточно следующего содержимого:
+
+```cmake CMakeLists.txt
+find_package(SWIG REQUIRED)
+include(UseSWIG)
+
+add_subdirectory(Python)
+```
+
+Если предполагается в один модуль спрятать все библиотеки, представленные в проекте, то целесообразнее поместить интерфейсный файл в корневую папку `Swig`, потому что этот файл будет общий для всех целевых языков. Если же предполагается добавлять несколько модулей, по одному для каждой библиотеки, то лучше поместить интерфейсный файл в соответствующей подпапке.
+
+Для упрощения, используем первый вариант.
+
+```swig InterfaceFilename.i
+%module SwigModuleName
+
+%begin %{
+#define SWIG_PYTHON_INTERPRETER_NO_DEBUG
+%}
+
+%include "stdint.i"
+%include "std_string.i"
+
+%{
+#include <Library/Library.hpp>
+%}
+
+%include "../Library/Library.hpp"
+
+```
+
+В данном случае, мы объявляем стандартные интерфейсные файлы и напрямую включаем заголовочный файл, так как объявленные функции [легко транслируются автоматически.][6]
+
+Для теста напишем `python` скрипт, который повторяет работу консольного приложения (заодно можно сравнить синтаксис вызова и увидеть автоматическую трансляцию типов)
+
+```py test.py
+import SwigModuleName as module
+
+print(f'Module has {dir(module)}')
+print(f'Struct1 has {dir(module.Struct1)}')
+print(f'Class1 has {dir(module.Class1)}')
+print(f'Class2 has {dir(module.Class2)}')
+print("[+] Application started")
+
+module.func1()
+module.func2(1)
+module.func3(1, 2.123, "qwerty")
+print(f'Result of func4: {module.func4()}')
+print(f'Result of func5: {module.func5()}')
+print(f'Result of func6: {module.func6()}')
+
+inst1 = module.Struct1()
+print(inst1.toString())
+
+inst2 = module.Class2(inst1)
+print(inst2.toString())
+inst3 = module.Class2(2, 123.0, "")
+print(inst3.toString())
+
+print("[+] Application ended")
+
+try:
+    c1 = module.Class1()
+except AttributeError as e:
+    print(f'Error creating Class1: {e}')
+
+```
+
+#### Template классы и функции
+
+Если мы экспортируем  в модуль библиотеку, имеющую шаблонный API, то у шаблонов не будет специализации по-умолчанию.
+
+```c++ Library.hpp
+//...
+template <typename T1> void func7(T1 arg) {
+  std::cout << "<func7> Template argument<" << typeid(T1).name() << ">: " << arg
+            << std::endl;
+}
+
+template <typename T1, typename T2> class Class3 {
+public:
+  Class3(T1 arg1, T2 arg2) : field1(arg1), field2(arg2) {
+    std::cout << "<Class3 " << this << "> Constructing" << std::endl;
+  }
+
+  ~Class3() { std::cout << "<Class3 " << this << "> Destroying" << std::endl; }
+
+  std::string toString() const {
+    std::stringstream ss;
+    ss << "<Class3 " << this << "> Template 1 argument<" << typeid(T1).name()
+       << ">: " << field1;
+    ss << " Template 2 argument<" << typeid(T2).name() << ">: " << field2;
+    return ss.str();
+  }
+
+private:
+  T1 field1;
+  T2 field2;
+};
+//...
+```
+
+Добавить специализацию можно в интерфейсном файле:
+
+```swig interfaceFilename.i
+%template(func7) LibraryNamespace::func7<char>;
+%template(func7) LibraryNamespace::func7<std::string>;
+%template(func7) LibraryNamespace::func7<int>;
+%template(func7) LibraryNamespace::func7<double>;
+
+%template(Class3_i_d) LibraryNamespace::Class3<int, double>;
+%template(Class3_i_s) LibraryNamespace::Class3<int, std::string>;
+%template(Class3_c_i) LibraryNamespace::Class3<char, int>;
+%template(Class3_s_s) LibraryNamespace::Class3<std::string, std::string>;
+
+```
+
+Как видно из примера выше, если целевой язык поддерживает перегрузку имён, то имя сущности можно не менять при специализации.
+
+Так будет выглядеть вызов специализированных функций из целевого языка:
+
+```py test.py
+#...
+module.func7('c')
+module.func7("qwerty")
+module.func7(1)
+module.func7(2.0)
+
+#...
+inst4 = module.Class3_i_d(2, 123.0)
+print(inst4.toString())
+inst5 = module.Class3_i_s(2, "")
+print(inst5.toString())
+inst6 = module.Class3_c_i('q', -1)
+print(inst6.toString())
+inst7 = module.Class3_s_s("string1", "string2")
+print(inst7.toString())
+#...
+```
+
+------
+
+Пример проекта CMake+SWIG представлен в [моём репозитории на github](https://github.com/gek0n/SwigPythonLibraryTest). Имена всех файлов, проектов и модулей "говорящие", чтобы можно было легко понять (в отличие от проектов-примеров по ссылкам ниже) где какое имя нужно подставить.
+
+### Ссылки
+
+#### Информация по теме
+1. [Использование SWIG в CMake](https://cmake.org/cmake/help/latest/module/UseSWIG.html)
+2. [Краткое руководство по SWIG](http://swig.org/tutorial.html)
+3. [Руководство пользователя SWIG](http://swig.org/Doc4.0/Contents.html)
+
+#### Использованные источники
+[0]: http://www.swig.org "SWIG технология"
+[1]: http://www.swig.org/compat.html "Совместимость SWIG"
+[2]: https://cmake.org/cmake/help/latest/module/UseSWIG.html "Использование SWIG в CMake"
+[3]: https://github.com/Mizux/cmake-swig/ "Пример проекта CMake-SWIG"
+[4]: https://github.com/gek0n/SwigPythonLibraryTest "Шаблонный проект"
+[5]: https://github.com/gek0n/SwigPythonLibraryTest/commit/5fe5855c509280b0f9ce94200aa41299348b62dc "Первая версия без SWIG"
+[6]: http://swig.org/tutorial.html "Руководство по использованию SWIG"
